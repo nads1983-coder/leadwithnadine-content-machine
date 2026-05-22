@@ -312,6 +312,40 @@ export function StudioShell() {
     persistStore(toggleSaved(readStore(), result));
   }
 
+  function scrollToStudioSection(target: "composer" | "outputs") {
+    document.getElementById(target)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+
+  function handleRailAction(action: RailAction) {
+    if (action === "studio") {
+      scrollToStudioSection("composer");
+      return;
+    }
+
+    if (action === "outputs") {
+      setActiveFilter("all");
+      scrollToStudioSection("outputs");
+      return;
+    }
+
+    if (action === "saved") {
+      setActiveFilter("saved");
+      scrollToStudioSection("outputs");
+      return;
+    }
+
+    setHistoryOpen(true);
+    window.setTimeout(() => {
+      document.getElementById("history-drafts")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 80);
+  }
+
   async function copySection(section: GeneratedSection) {
     const text = [
       section.title,
@@ -341,10 +375,11 @@ export function StudioShell() {
       />
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-4 px-4 pb-6 pt-4 sm:px-5 lg:grid-cols-[5rem_minmax(0,1fr)_22rem] lg:gap-5 lg:px-6 lg:pt-6">
-        <DesktopRail />
+        <DesktopRail onNavigate={handleRailAction} />
 
         <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
           <ComposerPanel
+            id="composer"
             source={source}
             tone={tone}
             sharpness={sharpness}
@@ -364,6 +399,7 @@ export function StudioShell() {
           />
 
           <OutputPanel
+            id="outputs"
             result={result}
             activeFilter={activeFilter}
             visibleSections={visibleSections}
@@ -469,12 +505,14 @@ function TopBar({
   );
 }
 
-function DesktopRail() {
+type RailAction = "studio" | "drafts" | "saved" | "outputs";
+
+function DesktopRail({ onNavigate }: { onNavigate: (action: RailAction) => void }) {
   const items = [
-    { icon: PenLine, label: "Studio" },
-    { icon: Archive, label: "Drafts" },
-    { icon: Bookmark, label: "Saved" },
-    { icon: FileText, label: "Outputs" }
+    { icon: PenLine, label: "Studio", action: "studio" as const },
+    { icon: Archive, label: "Drafts", action: "drafts" as const },
+    { icon: Bookmark, label: "Saved", action: "saved" as const },
+    { icon: FileText, label: "Outputs", action: "outputs" as const }
   ];
 
   return (
@@ -485,6 +523,7 @@ function DesktopRail() {
             key={item.label}
             type="button"
             title={item.label}
+            onClick={() => onNavigate(item.action)}
             className="grid h-11 w-11 place-items-center border border-white/10 bg-ink/80 text-muted transition hover:border-violet/60 hover:text-bone"
           >
             <item.icon size={18} />
@@ -496,6 +535,7 @@ function DesktopRail() {
 }
 
 function ComposerPanel({
+  id,
   source,
   tone,
   sharpness,
@@ -513,6 +553,7 @@ function ComposerPanel({
   onGenerate,
   onSaveDraft
 }: {
+  id: string;
   source: string;
   tone: ToneId;
   sharpness: SharpnessId;
@@ -531,7 +572,10 @@ function ComposerPanel({
   onSaveDraft: () => void;
 }) {
   return (
-    <section className="min-w-0 rounded border border-white/10 bg-panel/78 p-4 shadow-violet backdrop-blur-xl sm:p-5">
+    <section
+      id={id}
+      className="scroll-mt-20 min-w-0 rounded border border-white/10 bg-panel/78 p-4 shadow-violet backdrop-blur-xl sm:p-5"
+    >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl uppercase leading-none tracking-normal text-bone sm:text-4xl">
@@ -717,6 +761,7 @@ function ComposerPanel({
 }
 
 function OutputPanel({
+  id,
   result,
   activeFilter,
   visibleSections,
@@ -729,6 +774,7 @@ function OutputPanel({
   onRegenerate,
   onSaveCurrent
 }: {
+  id: string;
   result: GenerationResult;
   activeFilter: FilterId;
   visibleSections: GeneratedSection[];
@@ -742,7 +788,10 @@ function OutputPanel({
   onSaveCurrent: () => void;
 }) {
   return (
-    <section className="min-w-0 rounded border border-white/10 bg-coal/86 p-4 backdrop-blur-xl sm:p-5">
+    <section
+      id={id}
+      className="scroll-mt-20 min-w-0 rounded border border-white/10 bg-coal/86 p-4 backdrop-blur-xl sm:p-5"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
@@ -988,6 +1037,7 @@ function HistoryPanel({
           />
 
           <HistoryGroup
+            id="history-drafts"
             title="Drafts"
             empty="Drafts will appear here."
             items={store.drafts}
@@ -1011,18 +1061,20 @@ function HistoryPanel({
 }
 
 function HistoryGroup<T>({
+  id,
   title,
   empty,
   items,
   render
 }: {
+  id?: string;
   title: string;
   empty: string;
   items: T[];
   render: (item: T) => React.ReactNode;
 }) {
   return (
-    <section>
+    <section id={id} className="scroll-mt-4">
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
         {title}
       </h3>
