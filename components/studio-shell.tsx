@@ -4,22 +4,32 @@ import {
   Archive,
   Bookmark,
   BookmarkCheck,
+  Bold,
   Check,
   ChevronRight,
   Clipboard,
   Copy,
+  Eraser,
   FileText,
   History,
+  Italic,
+  List,
+  ListOrdered,
   Loader2,
   Menu,
+  Monitor,
   PenLine,
   RefreshCcw,
   Save,
+  Smartphone,
   Sparkles,
+  Strikethrough,
+  Type,
+  Underline,
   Wand2,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import {
   ctaModes,
@@ -173,6 +183,83 @@ async function copyText(text: string) {
   await navigator.clipboard.writeText(text);
 }
 
+type FormatterMode = "desktop" | "mobile";
+type TextStyle = "bold" | "italic" | "boldItalic" | "underline" | "strikethrough";
+
+const formatterStarterText =
+  "Clear leadership is not about sounding harsh.\n\nIt is about saying what needs to be said without hiding inside a long explanation.\n\nPeople trust clarity.\nNot constant reassurance.";
+
+const plainAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+const boldAlphabet =
+  "𝐀𝐁𝐂𝐃𝐄𝐅𝐆𝐇𝐈𝐉𝐊𝐋𝐌𝐍𝐎𝐏𝐐𝐑𝐒𝐓𝐔𝐕𝐖𝐗𝐘𝐙𝐚𝐛𝐜𝐝𝐞𝐟𝐠𝐡𝐢𝐣𝐤𝐥𝐦𝐧𝐨𝐩𝐪𝐫𝐬𝐭𝐮𝐯𝐰𝐱𝐲𝐳";
+const italicAlphabet =
+  "𝐴𝐵𝐶𝐷𝐸𝐹𝐺𝐻𝐼𝐽𝐾𝐿𝑀𝑁𝑂𝑃𝑄𝑅𝑆𝑇𝑈𝑉𝑊𝑋𝑌𝑍𝑎𝑏𝑐𝑑𝑒𝑓𝑔ℎ𝑖𝑗𝑘𝑙𝑚𝑛𝑜𝑝𝑞𝑟𝑠𝑡𝑢𝑣𝑤𝑥𝑦𝑧";
+const boldItalicAlphabet =
+  "𝑨𝑩𝑪𝑫𝑬𝑭𝑮𝑯𝑰𝑱𝑲𝑳𝑴𝑵𝑶𝑷𝑸𝑹𝑺𝑻𝑼𝑽𝑾𝑿𝒀𝒁𝒂𝒃𝒄𝒅𝒆𝒇𝒈𝒉𝒊𝒋𝒌𝒍𝒎𝒏𝒐𝒑𝒒𝒓𝒔𝒕𝒖𝒗𝒘𝒙𝒚𝒛";
+const plainDigits = "0123456789";
+const boldDigits = "𝟎𝟏𝟐𝟑𝟒𝟓𝟔𝟕𝟖𝟗";
+
+function mapCharacters(text: string, alphabet: string, digitSet = plainDigits) {
+  return Array.from(text)
+    .map((character) => {
+      const letterIndex = plainAlphabet.indexOf(character);
+      if (letterIndex >= 0) {
+        return Array.from(alphabet)[letterIndex] ?? character;
+      }
+
+      const digitIndex = plainDigits.indexOf(character);
+      if (digitIndex >= 0) {
+        return Array.from(digitSet)[digitIndex] ?? character;
+      }
+
+      return character;
+    })
+    .join("");
+}
+
+function addCombiningMark(text: string, mark: string) {
+  return Array.from(text)
+    .map((character) => (/\s/.test(character) ? character : `${character}${mark}`))
+    .join("");
+}
+
+function styleText(text: string, style: TextStyle) {
+  if (style === "bold") {
+    return mapCharacters(text, boldAlphabet, boldDigits);
+  }
+
+  if (style === "italic") {
+    return mapCharacters(text, italicAlphabet);
+  }
+
+  if (style === "boldItalic") {
+    return mapCharacters(text, boldItalicAlphabet, boldDigits);
+  }
+
+  if (style === "underline") {
+    return addCombiningMark(text, "\u0332");
+  }
+
+  return addCombiningMark(text, "\u0336");
+}
+
+function prefixSelectedLines(text: string, numbered: boolean) {
+  const lines = text.split("\n");
+  let count = 1;
+
+  return lines
+    .map((line) => {
+      if (!line.trim()) {
+        return line;
+      }
+
+      const prefix = numbered ? `${count}. ` : "• ";
+      count += 1;
+      return `${prefix}${line.replace(/^([•]|\d+\.)\s+/, "")}`;
+    })
+    .join("\n");
+}
+
 export function StudioShell() {
   const [source, setSource] = useState(starterText);
   const [tone, setTone] = useState<ToneId>("calm-authority");
@@ -312,7 +399,7 @@ export function StudioShell() {
     persistStore(toggleSaved(readStore(), result));
   }
 
-  function scrollToStudioSection(target: "composer" | "outputs") {
+  function scrollToStudioSection(target: "composer" | "outputs" | "formatter") {
     document.getElementById(target)?.scrollIntoView({
       behavior: "smooth",
       block: "start"
@@ -328,6 +415,11 @@ export function StudioShell() {
     if (action === "outputs") {
       setActiveFilter("all");
       scrollToStudioSection("outputs");
+      return;
+    }
+
+    if (action === "formatter") {
+      scrollToStudioSection("formatter");
       return;
     }
 
@@ -377,42 +469,46 @@ export function StudioShell() {
       <div className="relative mx-auto grid w-full max-w-7xl gap-4 px-4 pb-6 pt-4 sm:px-5 lg:grid-cols-[5rem_minmax(0,1fr)_22rem] lg:gap-5 lg:px-6 lg:pt-6">
         <DesktopRail onNavigate={handleRailAction} />
 
-        <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-          <ComposerPanel
-            id="composer"
-            source={source}
-            tone={tone}
-            sharpness={sharpness}
-            ctaMode={ctaMode}
-            presetTopic={presetTopic}
-            selectedTypes={selectedTypes}
-            canGenerate={canGenerate}
-            isPending={isPending}
-            onSourceChange={setSource}
-            onToneChange={setTone}
-            onSharpnessChange={setSharpness}
-            onCtaModeChange={setCtaMode}
-            onPresetTopicChange={setPresetTopic}
-            onToggleType={toggleType}
-            onGenerate={() => generateContent()}
-            onSaveDraft={saveDraft}
-          />
+        <div className="min-w-0 space-y-4">
+          <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+            <ComposerPanel
+              id="composer"
+              source={source}
+              tone={tone}
+              sharpness={sharpness}
+              ctaMode={ctaMode}
+              presetTopic={presetTopic}
+              selectedTypes={selectedTypes}
+              canGenerate={canGenerate}
+              isPending={isPending}
+              onSourceChange={setSource}
+              onToneChange={setTone}
+              onSharpnessChange={setSharpness}
+              onCtaModeChange={setCtaMode}
+              onPresetTopicChange={setPresetTopic}
+              onToggleType={toggleType}
+              onGenerate={() => generateContent()}
+              onSaveDraft={saveDraft}
+            />
 
-          <OutputPanel
-            id="outputs"
-            result={result}
-            activeFilter={activeFilter}
-            visibleSections={visibleSections}
-            error={error}
-            copiedId={copiedId}
-            isPending={isPending}
-            onFilterChange={setActiveFilter}
-            onCopySection={copySection}
-            onRegenerate={() => generateContent()}
-            onSaveCurrent={saveCurrent}
-            isSaved={isSaved(store, result)}
-          />
-        </section>
+            <OutputPanel
+              id="outputs"
+              result={result}
+              activeFilter={activeFilter}
+              visibleSections={visibleSections}
+              error={error}
+              copiedId={copiedId}
+              isPending={isPending}
+              onFilterChange={setActiveFilter}
+              onCopySection={copySection}
+              onRegenerate={() => generateContent()}
+              onSaveCurrent={saveCurrent}
+              isSaved={isSaved(store, result)}
+            />
+          </section>
+
+          <LinkedInFormatterPanel id="formatter" />
+        </div>
 
         <HistoryPanel
           store={store}
@@ -505,14 +601,15 @@ function TopBar({
   );
 }
 
-type RailAction = "studio" | "drafts" | "saved" | "outputs";
+type RailAction = "studio" | "drafts" | "saved" | "outputs" | "formatter";
 
 function DesktopRail({ onNavigate }: { onNavigate: (action: RailAction) => void }) {
   const items = [
     { icon: PenLine, label: "Studio", action: "studio" as const },
     { icon: Archive, label: "Drafts", action: "drafts" as const },
     { icon: Bookmark, label: "Saved", action: "saved" as const },
-    { icon: FileText, label: "Outputs", action: "outputs" as const }
+    { icon: FileText, label: "Outputs", action: "outputs" as const },
+    { icon: Type, label: "Formatter", action: "formatter" as const }
   ];
 
   return (
@@ -870,6 +967,222 @@ function OutputPanel({
         Regenerate current set
       </button>
     </section>
+  );
+}
+
+function LinkedInFormatterPanel({ id }: { id: string }) {
+  const [text, setText] = useState(formatterStarterText);
+  const [previewMode, setPreviewMode] = useState<FormatterMode>("desktop");
+  const [copied, setCopied] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  function replaceSelection(transform: (value: string) => string) {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      setText((current) => transform(current));
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const hasSelection = start !== end;
+    const targetText = hasSelection ? text.slice(start, end) : text;
+    const replacement = transform(targetText);
+    const nextText = hasSelection
+      ? `${text.slice(0, start)}${replacement}${text.slice(end)}`
+      : replacement;
+
+    setText(nextText);
+    window.requestAnimationFrame(() => {
+      textarea.focus();
+      if (hasSelection) {
+        textarea.setSelectionRange(start, start + replacement.length);
+      }
+    });
+  }
+
+  function applyStyle(style: TextStyle) {
+    replaceSelection((value) => styleText(value, style));
+  }
+
+  function applyList(numbered: boolean) {
+    replaceSelection((value) => prefixSelectedLines(value, numbered));
+  }
+
+  async function copyFormattedText() {
+    await copyText(text);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  }
+
+  return (
+    <section
+      id={id}
+      className="scroll-mt-20 rounded border border-white/10 bg-panel/78 p-4 shadow-violet backdrop-blur-xl sm:p-5"
+    >
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+            LinkedIn formatter
+          </p>
+          <h2 className="mt-2 font-display text-2xl uppercase tracking-normal text-bone">
+            Format Post Text
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted">
+            Select text, apply LinkedIn-safe formatting, preview the post, then copy it.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 overflow-hidden rounded border border-white/10 bg-white/[0.03] sm:w-48">
+          <button
+            type="button"
+            onClick={() => setPreviewMode("desktop")}
+            className={clsx(
+              "flex min-h-10 items-center justify-center gap-2 border-r border-white/10 px-3 text-xs font-semibold",
+              previewMode === "desktop"
+                ? "bg-gold/10 text-bone"
+                : "text-muted hover:text-bone"
+            )}
+          >
+            <Monitor size={15} />
+            Desktop
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewMode("mobile")}
+            className={clsx(
+              "flex min-h-10 items-center justify-center gap-2 px-3 text-xs font-semibold",
+              previewMode === "mobile"
+                ? "bg-gold/10 text-bone"
+                : "text-muted hover:text-bone"
+            )}
+          >
+            <Smartphone size={15} />
+            Mobile
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="min-w-0">
+          <div className="studio-scroll mb-3 flex gap-2 overflow-x-auto pb-1">
+            <FormatterButton label="Bold" onClick={() => applyStyle("bold")}>
+              <Bold size={16} />
+            </FormatterButton>
+            <FormatterButton label="Italic" onClick={() => applyStyle("italic")}>
+              <Italic size={16} />
+            </FormatterButton>
+            <FormatterButton
+              label="Bold Italic"
+              onClick={() => applyStyle("boldItalic")}
+            >
+              <span className="text-xs font-black italic">BI</span>
+            </FormatterButton>
+            <FormatterButton label="Underline" onClick={() => applyStyle("underline")}>
+              <Underline size={16} />
+            </FormatterButton>
+            <FormatterButton
+              label="Strikethrough"
+              onClick={() => applyStyle("strikethrough")}
+            >
+              <Strikethrough size={16} />
+            </FormatterButton>
+            <FormatterButton label="Bullets" onClick={() => applyList(false)}>
+              <List size={16} />
+            </FormatterButton>
+            <FormatterButton label="Numbers" onClick={() => applyList(true)}>
+              <ListOrdered size={16} />
+            </FormatterButton>
+          </div>
+
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            rows={12}
+            className="studio-scroll min-h-80 w-full resize-none rounded border border-line bg-ink/70 p-4 text-base leading-7 text-bone outline-none transition placeholder:text-muted/60 focus:border-violet/70 focus:ring-2 focus:ring-violet/20"
+            placeholder="Write or paste your LinkedIn post here."
+          />
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-[1fr_auto_auto]">
+            <p className="col-span-2 self-center text-xs text-muted sm:col-span-1">
+              {text.length.toLocaleString()} characters
+            </p>
+            <button
+              type="button"
+              onClick={() => setText("")}
+              className="flex min-h-11 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-bone transition hover:border-violet/60"
+            >
+              <Eraser size={16} />
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={copyFormattedText}
+              className="flex min-h-11 items-center justify-center gap-2 rounded border border-violet/70 bg-violet px-4 text-sm font-semibold text-white shadow-violet transition hover:bg-violetDeep"
+            >
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={clsx(
+            "min-w-0 rounded border border-white/10 bg-ink/70 p-4",
+            previewMode === "mobile" ? "mx-auto w-full max-w-sm" : "w-full"
+          )}
+        >
+          <div className="rounded bg-[#f4f2ee] p-4 text-[#191919]">
+            <div className="flex items-start gap-3">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#231832] text-sm font-bold text-[#e0bb58]">
+                LN
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold leading-5">Nadine Pierre</p>
+                <p className="text-xs leading-4 text-[#666666]">
+                  Leadership Communication | LeadWithNadine
+                </p>
+                <p className="text-xs leading-4 text-[#666666]">12h •</p>
+              </div>
+            </div>
+
+            <p className="mt-4 whitespace-pre-wrap text-sm leading-6">
+              {text || "Your formatted LinkedIn post preview will appear here."}
+            </p>
+
+            <div className="mt-4 flex items-center justify-between border-t border-[#d6d3cc] pt-3 text-xs text-[#666666]">
+              <span>Like</span>
+              <span>Comment</span>
+              <span>Share</span>
+              <span>Send</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FormatterButton({
+  label,
+  onClick,
+  children
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      onClick={onClick}
+      className="grid h-10 w-10 shrink-0 place-items-center rounded border border-white/10 bg-white/[0.04] text-bone transition hover:border-violet/60"
+      aria-label={label}
+    >
+      {children}
+    </button>
   );
 }
 
