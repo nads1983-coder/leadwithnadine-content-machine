@@ -29,7 +29,9 @@ import {
   labelForCtaMode,
   labelForSharpness,
   labelForContentType,
+  labelForPresetTopic,
   labelForTone,
+  presetTopics,
   sharpnessModes,
   tones
 } from "@/lib/content-config";
@@ -48,6 +50,7 @@ import {
   GenerateRequest,
   GeneratedSection,
   GenerationResult,
+  PresetTopicId,
   SharpnessId,
   StudioStore,
   ToneId
@@ -65,6 +68,7 @@ const sampleResult: GenerationResult = {
   tone: "calm-authority",
   sharpness: "balanced",
   ctaMode: "soft",
+  presetTopic: "overexplaining",
   selectedTypes: defaultSelectedTypes,
   title: "Clarity Under Pressure",
   summary:
@@ -174,6 +178,7 @@ export function StudioShell() {
   const [tone, setTone] = useState<ToneId>("calm-authority");
   const [sharpness, setSharpness] = useState<SharpnessId>("balanced");
   const [ctaMode, setCtaMode] = useState<CtaModeId>("soft");
+  const [presetTopic, setPresetTopic] = useState<PresetTopicId>("overexplaining");
   const [selectedTypes, setSelectedTypes] = useState<ContentTypeId[]>(defaultSelectedTypes);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const [store, setStore] = useState<StudioStore>({
@@ -232,6 +237,7 @@ export function StudioShell() {
       tone,
       sharpness,
       ctaMode,
+      presetTopic,
       selectedTypes
     };
 
@@ -285,6 +291,7 @@ export function StudioShell() {
       tone,
       sharpness,
       ctaMode,
+      presetTopic,
       selectedTypes
     };
 
@@ -296,6 +303,7 @@ export function StudioShell() {
     setTone(draft.tone);
     setSharpness(draft.sharpness ?? "balanced");
     setCtaMode(draft.ctaMode ?? "soft");
+    setPresetTopic(draft.presetTopic ?? "none");
     setSelectedTypes(draft.selectedTypes);
     setHistoryOpen(false);
   }
@@ -341,6 +349,7 @@ export function StudioShell() {
             tone={tone}
             sharpness={sharpness}
             ctaMode={ctaMode}
+            presetTopic={presetTopic}
             selectedTypes={selectedTypes}
             canGenerate={canGenerate}
             isPending={isPending}
@@ -348,6 +357,7 @@ export function StudioShell() {
             onToneChange={setTone}
             onSharpnessChange={setSharpness}
             onCtaModeChange={setCtaMode}
+            onPresetTopicChange={setPresetTopic}
             onToggleType={toggleType}
             onGenerate={() => generateContent()}
             onSaveDraft={saveDraft}
@@ -383,6 +393,7 @@ export function StudioShell() {
             setTone(item.tone);
             setSharpness(item.sharpness ?? "balanced");
             setCtaMode(item.ctaMode ?? "soft");
+            setPresetTopic(item.presetTopic ?? "none");
             setSelectedTypes(item.selectedTypes);
             setHistoryOpen(false);
             setMenuOpen(false);
@@ -489,6 +500,7 @@ function ComposerPanel({
   tone,
   sharpness,
   ctaMode,
+  presetTopic,
   selectedTypes,
   canGenerate,
   isPending,
@@ -496,6 +508,7 @@ function ComposerPanel({
   onToneChange,
   onSharpnessChange,
   onCtaModeChange,
+  onPresetTopicChange,
   onToggleType,
   onGenerate,
   onSaveDraft
@@ -504,6 +517,7 @@ function ComposerPanel({
   tone: ToneId;
   sharpness: SharpnessId;
   ctaMode: CtaModeId;
+  presetTopic: PresetTopicId;
   selectedTypes: ContentTypeId[];
   canGenerate: boolean;
   isPending: boolean;
@@ -511,6 +525,7 @@ function ComposerPanel({
   onToneChange: (value: ToneId) => void;
   onSharpnessChange: (value: SharpnessId) => void;
   onCtaModeChange: (value: CtaModeId) => void;
+  onPresetTopicChange: (value: PresetTopicId) => void;
   onToggleType: (value: ContentTypeId) => void;
   onGenerate: () => void;
   onSaveDraft: () => void;
@@ -564,6 +579,30 @@ function ComposerPanel({
           <Save size={17} />
           Save draft
         </button>
+      </div>
+
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <label
+            htmlFor="preset-topic"
+            className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft"
+          >
+            Topic
+          </label>
+          <p className="truncate text-xs text-muted">{labelForPresetTopic(presetTopic)}</p>
+        </div>
+        <select
+          id="preset-topic"
+          value={presetTopic}
+          onChange={(event) => onPresetTopicChange(event.target.value as PresetTopicId)}
+          className="min-h-12 w-full rounded border border-line bg-ink/70 px-3 text-sm font-semibold text-bone outline-none transition focus:border-violet/70 focus:ring-2 focus:ring-violet/20"
+        >
+          {presetTopics.map((topic) => (
+            <option key={topic.id} value={topic.id} className="bg-ink text-bone">
+              {topic.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="mt-5">

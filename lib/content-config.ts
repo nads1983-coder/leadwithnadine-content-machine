@@ -2,6 +2,7 @@ import {
   CtaModeId,
   ContentTypeId,
   FilterId,
+  PresetTopicId,
   SharpnessId,
   ToneId
 } from "@/types/content";
@@ -211,6 +212,73 @@ export const ctaModes: Array<{
   }
 ];
 
+export const presetTopics: Array<{
+  id: PresetTopicId;
+  label: string;
+  description: string;
+}> = [
+  {
+    id: "none",
+    label: "No preset topic",
+    description: "Use only the source material."
+  },
+  {
+    id: "difficult-conversations",
+    label: "Difficult Conversations",
+    description: "Correction, resistance, accountability, and emotionally expensive conversations."
+  },
+  {
+    id: "overexplaining",
+    label: "Overexplaining",
+    description: "Where leaders soften, justify, repeat, or dilute their authority."
+  },
+  {
+    id: "frontline-leadership",
+    label: "Frontline Leadership",
+    description: "Operational pressure, standards, coverage, priorities, and real-time decisions."
+  },
+  {
+    id: "new-manager-confidence",
+    label: "New Manager Confidence",
+    description: "Building authority through exposure, decisions, and consistent communication."
+  },
+  {
+    id: "women-stepping-into-authority",
+    label: "Women Stepping Into Authority",
+    description: "Permission, visibility, authority, and communication that stops shrinking."
+  },
+  {
+    id: "emotional-control",
+    label: "Emotional Control",
+    description: "Staying calm, clear, and direct when conversations become uncomfortable."
+  },
+  {
+    id: "calm-authority",
+    label: "Calm Authority",
+    description: "Firm leadership without aggression, overexplaining, or emotional leakage."
+  },
+  {
+    id: "communication-clarity",
+    label: "Communication Clarity",
+    description: "Cleaner language, fewer caveats, and decisions people can understand."
+  },
+  {
+    id: "leadership-under-pressure",
+    label: "Leadership Under Pressure",
+    description: "How leaders communicate when stakes, emotions, and scrutiny rise."
+  },
+  {
+    id: "accountability-standards",
+    label: "Accountability and Standards",
+    description: "Protecting expectations without becoming harsh or overexplaining the boundary."
+  },
+  {
+    id: "managing-resistance",
+    label: "Managing Resistance",
+    description: "Handling pushback, defensiveness, silence, and decisions people may not like."
+  }
+];
+
 export const filters: Array<{ id: FilterId; label: string }> = [
   { id: "all", label: "All" },
   { id: "linkedin", label: "LinkedIn" },
@@ -249,4 +317,12 @@ export function labelForSharpness(id: SharpnessId) {
 
 export function labelForCtaMode(id: CtaModeId) {
   return ctaModes.find((mode) => mode.id === id)?.label ?? "Soft CTA";
+}
+
+export function labelForPresetTopic(id: PresetTopicId) {
+  return presetTopics.find((topic) => topic.id === id)?.label ?? "No preset topic";
+}
+
+export function descriptionForPresetTopic(id: PresetTopicId) {
+  return presetTopics.find((topic) => topic.id === id)?.description ?? "";
 }

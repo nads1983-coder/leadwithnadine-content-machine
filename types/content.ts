@@ -27,6 +27,20 @@ export type SharpnessId = "soft" | "balanced" | "direct" | "very-direct";
 
 export type CtaModeId = "none" | "soft" | "website" | "product";
 
+export type PresetTopicId =
+  | "none"
+  | "difficult-conversations"
+  | "overexplaining"
+  | "frontline-leadership"
+  | "new-manager-confidence"
+  | "women-stepping-into-authority"
+  | "emotional-control"
+  | "calm-authority"
+  | "communication-clarity"
+  | "leadership-under-pressure"
+  | "accountability-standards"
+  | "managing-resistance";
+
 export type FilterId =
   | "all"
   | "linkedin"
@@ -57,6 +71,7 @@ export type GenerationResult = {
   tone: ToneId;
   sharpness?: SharpnessId;
   ctaMode?: CtaModeId;
+  presetTopic?: PresetTopicId;
   selectedTypes: ContentTypeId[];
   title: string;
   summary: string;
@@ -71,6 +86,7 @@ export type Draft = {
   tone: ToneId;
   sharpness?: SharpnessId;
   ctaMode?: CtaModeId;
+  presetTopic?: PresetTopicId;
   selectedTypes: ContentTypeId[];
 };
 
@@ -86,5 +102,6 @@ export type GenerateRequest = {
   tone: ToneId;
   sharpness: SharpnessId;
   ctaMode: CtaModeId;
+  presetTopic: PresetTopicId;
   selectedTypes: ContentTypeId[];
 };

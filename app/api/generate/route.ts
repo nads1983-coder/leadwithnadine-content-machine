@@ -8,6 +8,7 @@ import {
   GenerateRequest,
   GeneratedSection,
   GenerationResult,
+  PresetTopicId,
   SharpnessId,
   ToneId
 } from "@/types/content";
@@ -29,6 +30,20 @@ const sharpnessIds = new Set<SharpnessId>([
   "very-direct"
 ]);
 const ctaModeIds = new Set<CtaModeId>(["none", "soft", "website", "product"]);
+const presetTopicIds = new Set<PresetTopicId>([
+  "none",
+  "difficult-conversations",
+  "overexplaining",
+  "frontline-leadership",
+  "new-manager-confidence",
+  "women-stepping-into-authority",
+  "emotional-control",
+  "calm-authority",
+  "communication-clarity",
+  "leadership-under-pressure",
+  "accountability-standards",
+  "managing-resistance"
+]);
 
 function isContentTypeId(value: unknown): value is ContentTypeId {
   return typeof value === "string" && contentTypeIds.has(value as ContentTypeId);
@@ -50,6 +65,9 @@ function normalizeRequest(body: unknown): GenerateRequest {
   const ctaMode = ctaModeIds.has(candidate.ctaMode as CtaModeId)
     ? (candidate.ctaMode as CtaModeId)
     : "soft";
+  const presetTopic = presetTopicIds.has(candidate.presetTopic as PresetTopicId)
+    ? (candidate.presetTopic as PresetTopicId)
+    : "none";
   const selectedTypes = Array.isArray(candidate.selectedTypes)
     ? candidate.selectedTypes.filter(isContentTypeId)
     : defaultSelectedTypes;
@@ -63,6 +81,7 @@ function normalizeRequest(body: unknown): GenerateRequest {
     tone,
     sharpness,
     ctaMode,
+    presetTopic,
     selectedTypes: selectedTypes.length ? selectedTypes : defaultSelectedTypes
   };
 }
@@ -148,6 +167,7 @@ function parseOpenAIJson(text: string, request: GenerateRequest): GenerationResu
     tone: request.tone,
     sharpness: request.sharpness,
     ctaMode: request.ctaMode,
+    presetTopic: request.presetTopic,
     selectedTypes: request.selectedTypes,
     title:
       typeof parsed.title === "string" && parsed.title

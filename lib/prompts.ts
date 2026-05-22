@@ -1,6 +1,8 @@
 import {
   contentTypes,
+  descriptionForPresetTopic,
   labelForCtaMode,
+  labelForPresetTopic,
   labelForSharpness,
   labelForTone
 } from "@/lib/content-config";
@@ -114,6 +116,12 @@ Sharpness selected: ${labelForSharpness(request.sharpness)}
 Sharpness behavior: ${sharpnessInstructions[request.sharpness]}
 CTA mode selected: ${labelForCtaMode(request.ctaMode)}
 CTA behavior: ${ctaInstructions[request.ctaMode]}
+Preset topic selected: ${labelForPresetTopic(request.presetTopic)}
+Topic guidance: ${
+    request.presetTopic === "none"
+      ? "Use the source material as the main angle."
+      : descriptionForPresetTopic(request.presetTopic)
+  }
 
 Generate these content outputs:
 ${requestedTypes.map((type) => `- ${type.id}: ${type.prompt}`).join("\n")}
