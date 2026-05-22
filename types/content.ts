@@ -1,5 +1,6 @@
 export type ContentTypeId =
   | "linkedin"
+  | "instagram"
   | "tiktok"
   | "hooks"
   | "carousel"
@@ -12,7 +13,8 @@ export type ContentTypeId =
   | "youtubeScripts"
   | "youtubeTitles"
   | "youtubeDescriptions"
-  | "youtubeTags";
+  | "youtubeTags"
+  | "platformHashtags";
 
 export type ToneId =
   | "calm-authority"
@@ -28,7 +30,9 @@ export type CtaModeId = "none" | "soft" | "website" | "product";
 export type FilterId =
   | "all"
   | "linkedin"
+  | "instagram"
   | "tiktok"
+  | "hashtags"
   | "hooks"
   | "carousel"
   | "youtube"

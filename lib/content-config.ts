@@ -23,6 +23,13 @@ export const contentTypes: ContentTypeConfig[] = [
     prompt: "One natural LinkedIn post with a strong first line, clean paragraph spacing, lived operational credibility, and an emotionally intelligent ending."
   },
   {
+    id: "instagram",
+    label: "Instagram Captions",
+    shortLabel: "Instagram",
+    group: "instagram",
+    prompt: "Three Instagram captions with a strong first line, grounded emotional clarity, natural paragraph rhythm, and no more than seven hashtags each."
+  },
+  {
     id: "tiktok",
     label: "TikTok Captions",
     shortLabel: "TikTok",
@@ -63,6 +70,13 @@ export const contentTypes: ContentTypeConfig[] = [
     shortLabel: "Threads",
     group: "all",
     prompt: "One concise thread variation with natural sequencing and calm authority."
+  },
+  {
+    id: "platformHashtags",
+    label: "Platform Hashtags",
+    shortLabel: "Hashtags",
+    group: "hashtags",
+    prompt: "Hashtag sets for LinkedIn, TikTok, Instagram, YouTube Shorts, and Threads. Keep each set platform-appropriate and avoid generic motivational tags."
   },
   {
     id: "videoHooks",
@@ -200,7 +214,9 @@ export const ctaModes: Array<{
 export const filters: Array<{ id: FilterId; label: string }> = [
   { id: "all", label: "All" },
   { id: "linkedin", label: "LinkedIn" },
+  { id: "instagram", label: "Instagram" },
   { id: "tiktok", label: "TikTok" },
+  { id: "hashtags", label: "Hashtags" },
   { id: "hooks", label: "Hooks" },
   { id: "carousel", label: "Carousel" },
   { id: "youtube", label: "YouTube" },
@@ -211,9 +227,11 @@ export const filters: Array<{ id: FilterId; label: string }> = [
 
 export const defaultSelectedTypes: ContentTypeId[] = [
   "linkedin",
+  "instagram",
   "hooks",
   "youtubeScripts",
   "tiktok",
+  "platformHashtags",
   "imagePrompts"
 ];
 

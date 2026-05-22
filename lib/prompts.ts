@@ -87,7 +87,7 @@ Return only valid JSON matching this shape:
       "id": "stable-kebab-id",
       "type": "one requested content type id",
       "title": "section title",
-      "platform": "LinkedIn | TikTok | YouTube Shorts | Visual | General",
+      "platform": "LinkedIn | Instagram | TikTok | YouTube Shorts | Threads | Visual | General",
       "body": "main copy, script, rewrite, or explanation",
       "items": ["supporting options, tags, slides, hooks, or bullets"],
       "cta": "optional CTA"
@@ -145,6 +145,14 @@ LinkedIn style:
 - emotionally intelligent observation grounded in a real workplace pattern
 - subtle authority, no lecture tone
 - ending should feel calm, precise, and earned
+- hashtag guidance: 3 to 5 specific tags, professional, searchable, not trendy
+
+Instagram style:
+- strong first line that works before the caption expands
+- grounded and emotionally observant, but still easy to read on mobile
+- natural spacing, short paragraphs, and no inflated inspiration
+- captions can be warmer than LinkedIn, but still calm and firm
+- hashtag guidance: 5 to 7 tags, mix niche leadership tags with brand-relevant tags
 
 TikTok style:
 - very short captions
@@ -152,6 +160,7 @@ TikTok style:
 - strong first line
 - maximum five hashtags
 - no filler
+- hashtag guidance: 3 to 5 tags, direct and searchable, no viral bait
 
 YouTube Shorts style:
 - stronger first-line hook
@@ -161,6 +170,22 @@ YouTube Shorts style:
 - curiosity-driven title options when requested
 - SEO-aware descriptions and searchable tags when requested
 - calm, controlled delivery with subtitles
+- tag guidance: searchable tag phrases, not hashtag clutter
+
+Threads style:
+- brief, conversational, and tension-led
+- should feel like a sharp observation, not a formal post
+- hashtag guidance: 1 to 3 tags only if useful
+
+Platform hashtag rules:
+- If Platform Hashtags are requested, create separate labeled sets for LinkedIn, Instagram, TikTok, YouTube Shorts, and Threads.
+- LinkedIn: 3 to 5 hashtags, professional and topic-specific.
+- Instagram: 5 to 7 hashtags, discoverable but not generic.
+- TikTok: 3 to 5 hashtags, sharp and searchable.
+- YouTube Shorts: 8 to 12 searchable tags or tag phrases. They do not all need hashtag symbols.
+- Threads: 1 to 3 tags, restrained.
+- Avoid tags like #motivation, #success, #bossbabe, #inspiration, #mindsetshift unless the source makes them unusually relevant.
+- Use tags connected to difficult conversations, overexplaining, leadership communication, frontline leadership, calm authority, new managers, and women in leadership.
 
 CTA handling:
 - If CTA mode is No CTA, leave cta as an empty string for every section.

@@ -81,6 +81,37 @@ const sampleResult: GenerationResult = {
       cta: "Where are you still overexplaining a decision that already needs to be clear?"
     },
     {
+      id: "sample-instagram",
+      type: "instagram",
+      title: "Instagram Caption",
+      platform: "Instagram",
+      body:
+        "Sometimes the issue is not that you are unclear.\n\nIt is that you are trying to make the truth easier for everyone to receive.\n\nThat is where overexplaining starts.\n\nClear leadership does not need to be cold. It does need to stop apologising for having standards.",
+      items: [
+        "#calmauthority",
+        "#leadershipcommunication",
+        "#difficultconversations",
+        "#newmanagers",
+        "#womeninleadership"
+      ],
+      cta: "Save this for the next time clarity feels uncomfortable."
+    },
+    {
+      id: "sample-hashtags",
+      type: "platformHashtags",
+      title: "Platform Hashtags",
+      platform: "General",
+      body: "Platform-specific hashtag sets for this content angle.",
+      items: [
+        "LinkedIn: #leadershipcommunication #difficultconversations #calmauthority #frontlineleadership",
+        "Instagram: #calmauthority #leadershipcommunication #womeninleadership #newmanagers #difficultconversations",
+        "TikTok: #leadershiptips #calmauthority #workplacecommunication #newmanager",
+        "YouTube Shorts: leadership communication, difficult conversations, overexplaining, calm authority, new manager tips, frontline leadership",
+        "Threads: #calmauthority #leadership"
+      ],
+      cta: ""
+    },
+    {
       id: "sample-hooks",
       type: "hooks",
       title: "Hooks",
@@ -117,6 +148,10 @@ function isSaved(store: StudioStore, result?: GenerationResult) {
 function sectionMatchesFilter(section: GeneratedSection, activeFilter: FilterId) {
   if (activeFilter === "all" || activeFilter === "saved") {
     return true;
+  }
+
+  if (activeFilter === "hashtags") {
+    return section.type === "platformHashtags" || section.type === "youtubeTags";
   }
 
   if (activeFilter === "youtube") {
