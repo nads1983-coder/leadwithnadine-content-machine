@@ -50,9 +50,11 @@ import {
 const starterText =
   "A new manager kept softening every decision because she did not want to seem difficult. The issue was not confidence. It was the fear that clear leadership would be interpreted as cruelty.";
 
+const sampleCreatedAt = "2026-01-01T09:00:00.000Z";
+
 const sampleResult: GenerationResult = {
   id: "sample",
-  createdAt: new Date().toISOString(),
+  createdAt: sampleCreatedAt,
   source: starterText,
   tone: "calm-authority",
   selectedTypes: defaultSelectedTypes,
@@ -129,7 +131,13 @@ export function StudioShell() {
   const [tone, setTone] = useState<ToneId>("calm-authority");
   const [selectedTypes, setSelectedTypes] = useState<ContentTypeId[]>(defaultSelectedTypes);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
-  const [store, setStore] = useState<StudioStore>(() => readStore());
+  const [store, setStore] = useState<StudioStore>({
+    version: 1,
+    recent: [],
+    saved: [],
+    drafts: []
+  });
+  const [hasMounted, setHasMounted] = useState(false);
   const [result, setResult] = useState<GenerationResult>(sampleResult);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState("");
@@ -138,8 +146,21 @@ export function StudioShell() {
   const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setStore(readStore());
+      setHasMounted(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (!hasMounted) {
+      return;
+    }
+
     writeStore(store);
-  }, [store]);
+  }, [hasMounted, store]);
 
   const visibleSections = useMemo(() => {
     const sourceResult =
@@ -295,6 +316,7 @@ export function StudioShell() {
         <HistoryPanel
           store={store}
           current={result}
+          renderTimestamps={hasMounted}
           isOpen={historyOpen || menuOpen}
           onClose={() => {
             setHistoryOpen(false);
@@ -720,6 +742,7 @@ function LoadingCard() {
 function HistoryPanel({
   store,
   current,
+  renderTimestamps,
   isOpen,
   onClose,
   onLoadResult,
@@ -727,6 +750,7 @@ function HistoryPanel({
 }: {
   store: StudioStore;
   current: GenerationResult;
+  renderTimestamps: boolean;
   isOpen: boolean;
   onClose: () => void;
   onLoadResult: (value: GenerationResult) => void;
@@ -777,7 +801,11 @@ function HistoryPanel({
               <HistoryButton
                 key={item.id}
                 title={item.title}
-                meta={`${formatDate(item.createdAt)} · ${labelForTone(item.tone)}`}
+                meta={
+                  renderTimestamps
+                    ? `${formatDate(item.createdAt)} · ${labelForTone(item.tone)}`
+                    : labelForTone(item.tone)
+                }
                 onClick={() => onLoadResult(item)}
               />
             )}
@@ -791,7 +819,11 @@ function HistoryPanel({
               <HistoryButton
                 key={item.id}
                 title={item.title}
-                meta={`${formatDate(item.createdAt)} · ${item.sections.length} sections`}
+                meta={
+                  renderTimestamps
+                    ? `${formatDate(item.createdAt)} · ${item.sections.length} sections`
+                    : `${item.sections.length} sections`
+                }
                 onClick={() => onLoadResult(item)}
               />
             )}
@@ -805,7 +837,11 @@ function HistoryPanel({
               <HistoryButton
                 key={item.id}
                 title={item.title}
-                meta={`${formatDate(item.updatedAt)} · ${labelForTone(item.tone)}`}
+                meta={
+                  renderTimestamps
+                    ? `${formatDate(item.updatedAt)} · ${labelForTone(item.tone)}`
+                    : labelForTone(item.tone)
+                }
                 onClick={() => onLoadDraft(item)}
               />
             )}
