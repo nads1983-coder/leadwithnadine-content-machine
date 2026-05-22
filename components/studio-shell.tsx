@@ -22,11 +22,15 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import {
+  ctaModes,
   contentTypes,
   defaultSelectedTypes,
   filters,
+  labelForCtaMode,
+  labelForSharpness,
   labelForContentType,
   labelForTone,
+  sharpnessModes,
   tones
 } from "@/lib/content-config";
 import {
@@ -38,11 +42,13 @@ import {
 } from "@/lib/storage";
 import {
   ContentTypeId,
+  CtaModeId,
   Draft,
   FilterId,
   GenerateRequest,
   GeneratedSection,
   GenerationResult,
+  SharpnessId,
   StudioStore,
   ToneId
 } from "@/types/content";
@@ -57,6 +63,8 @@ const sampleResult: GenerationResult = {
   createdAt: sampleCreatedAt,
   source: starterText,
   tone: "calm-authority",
+  sharpness: "balanced",
+  ctaMode: "soft",
   selectedTypes: defaultSelectedTypes,
   title: "Clarity Under Pressure",
   summary:
@@ -129,6 +137,8 @@ async function copyText(text: string) {
 export function StudioShell() {
   const [source, setSource] = useState(starterText);
   const [tone, setTone] = useState<ToneId>("calm-authority");
+  const [sharpness, setSharpness] = useState<SharpnessId>("balanced");
+  const [ctaMode, setCtaMode] = useState<CtaModeId>("soft");
   const [selectedTypes, setSelectedTypes] = useState<ContentTypeId[]>(defaultSelectedTypes);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const [store, setStore] = useState<StudioStore>({
@@ -185,6 +195,8 @@ export function StudioShell() {
     const payload: GenerateRequest = {
       source: nextSource,
       tone,
+      sharpness,
+      ctaMode,
       selectedTypes
     };
 
@@ -236,6 +248,8 @@ export function StudioShell() {
       title: source.trim().slice(0, 54) || "Untitled leadership note",
       source,
       tone,
+      sharpness,
+      ctaMode,
       selectedTypes
     };
 
@@ -245,6 +259,8 @@ export function StudioShell() {
   function loadDraft(draft: Draft) {
     setSource(draft.source);
     setTone(draft.tone);
+    setSharpness(draft.sharpness ?? "balanced");
+    setCtaMode(draft.ctaMode ?? "soft");
     setSelectedTypes(draft.selectedTypes);
     setHistoryOpen(false);
   }
@@ -288,11 +304,15 @@ export function StudioShell() {
           <ComposerPanel
             source={source}
             tone={tone}
+            sharpness={sharpness}
+            ctaMode={ctaMode}
             selectedTypes={selectedTypes}
             canGenerate={canGenerate}
             isPending={isPending}
             onSourceChange={setSource}
             onToneChange={setTone}
+            onSharpnessChange={setSharpness}
+            onCtaModeChange={setCtaMode}
             onToggleType={toggleType}
             onGenerate={() => generateContent()}
             onSaveDraft={saveDraft}
@@ -326,6 +346,8 @@ export function StudioShell() {
             setResult(item);
             setSource(item.source);
             setTone(item.tone);
+            setSharpness(item.sharpness ?? "balanced");
+            setCtaMode(item.ctaMode ?? "soft");
             setSelectedTypes(item.selectedTypes);
             setHistoryOpen(false);
             setMenuOpen(false);
@@ -430,22 +452,30 @@ function DesktopRail() {
 function ComposerPanel({
   source,
   tone,
+  sharpness,
+  ctaMode,
   selectedTypes,
   canGenerate,
   isPending,
   onSourceChange,
   onToneChange,
+  onSharpnessChange,
+  onCtaModeChange,
   onToggleType,
   onGenerate,
   onSaveDraft
 }: {
   source: string;
   tone: ToneId;
+  sharpness: SharpnessId;
+  ctaMode: CtaModeId;
   selectedTypes: ContentTypeId[];
   canGenerate: boolean;
   isPending: boolean;
   onSourceChange: (value: string) => void;
   onToneChange: (value: ToneId) => void;
+  onSharpnessChange: (value: SharpnessId) => void;
+  onCtaModeChange: (value: CtaModeId) => void;
   onToggleType: (value: ContentTypeId) => void;
   onGenerate: () => void;
   onSaveDraft: () => void;
@@ -523,6 +553,60 @@ function ComposerPanel({
             >
               <span className="block text-sm font-semibold text-bone">{item.label}</span>
               <span className="mt-1 block text-xs leading-5">{item.description}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+            Sharpness
+          </p>
+          <p className="text-xs text-muted">{labelForSharpness(sharpness)}</p>
+        </div>
+        <div className="grid grid-cols-4 overflow-hidden rounded border border-white/10 bg-white/[0.03]">
+          {sharpnessModes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSharpnessChange(item.id)}
+              title={item.description}
+              className={clsx(
+                "min-h-11 border-r border-white/10 px-2 text-xs font-semibold transition last:border-r-0",
+                sharpness === item.id
+                  ? "bg-violet/25 text-bone"
+                  : "text-muted hover:bg-white/[0.04] hover:text-bone"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+            CTA
+          </p>
+          <p className="text-xs text-muted">{labelForCtaMode(ctaMode)}</p>
+        </div>
+        <div className="studio-scroll flex gap-2 overflow-x-auto pb-1">
+          {ctaModes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onCtaModeChange(item.id)}
+              title={item.description}
+              className={clsx(
+                "min-h-10 shrink-0 rounded border px-3 text-sm transition",
+                ctaMode === item.id
+                  ? "border-gold/70 bg-gold/10 text-bone"
+                  : "border-white/10 bg-white/[0.03] text-muted hover:border-violet/50"
+              )}
+            >
+              {item.label}
             </button>
           ))}
         </div>

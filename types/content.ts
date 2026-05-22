@@ -21,6 +21,10 @@ export type ToneId =
   | "emotionally-sharp"
   | "firm-but-human";
 
+export type SharpnessId = "soft" | "balanced" | "direct" | "very-direct";
+
+export type CtaModeId = "none" | "soft" | "website" | "product";
+
 export type FilterId =
   | "all"
   | "linkedin"
@@ -47,6 +51,8 @@ export type GenerationResult = {
   createdAt: string;
   source: string;
   tone: ToneId;
+  sharpness?: SharpnessId;
+  ctaMode?: CtaModeId;
   selectedTypes: ContentTypeId[];
   title: string;
   summary: string;
@@ -59,6 +65,8 @@ export type Draft = {
   title: string;
   source: string;
   tone: ToneId;
+  sharpness?: SharpnessId;
+  ctaMode?: CtaModeId;
   selectedTypes: ContentTypeId[];
 };
 
@@ -72,5 +80,7 @@ export type StudioStore = {
 export type GenerateRequest = {
   source: string;
   tone: ToneId;
+  sharpness: SharpnessId;
+  ctaMode: CtaModeId;
   selectedTypes: ContentTypeId[];
 };

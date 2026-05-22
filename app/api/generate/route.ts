@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { contentTypes, defaultSelectedTypes } from "@/lib/content-config";
 import { buildInput, buildInstructions, requestedTypeSet } from "@/lib/prompts";
 import {
+  CtaModeId,
   ContentTypeId,
   GenerateRequest,
   GeneratedSection,
   GenerationResult,
+  SharpnessId,
   ToneId
 } from "@/types/content";
 
@@ -20,6 +22,13 @@ const toneIds = new Set<ToneId>([
   "emotionally-sharp",
   "firm-but-human"
 ]);
+const sharpnessIds = new Set<SharpnessId>([
+  "soft",
+  "balanced",
+  "direct",
+  "very-direct"
+]);
+const ctaModeIds = new Set<CtaModeId>(["none", "soft", "website", "product"]);
 
 function isContentTypeId(value: unknown): value is ContentTypeId {
   return typeof value === "string" && contentTypeIds.has(value as ContentTypeId);
@@ -35,6 +44,12 @@ function normalizeRequest(body: unknown): GenerateRequest {
   const tone = toneIds.has(candidate.tone as ToneId)
     ? (candidate.tone as ToneId)
     : "calm-authority";
+  const sharpness = sharpnessIds.has(candidate.sharpness as SharpnessId)
+    ? (candidate.sharpness as SharpnessId)
+    : "balanced";
+  const ctaMode = ctaModeIds.has(candidate.ctaMode as CtaModeId)
+    ? (candidate.ctaMode as CtaModeId)
+    : "soft";
   const selectedTypes = Array.isArray(candidate.selectedTypes)
     ? candidate.selectedTypes.filter(isContentTypeId)
     : defaultSelectedTypes;
@@ -46,8 +61,19 @@ function normalizeRequest(body: unknown): GenerateRequest {
   return {
     source: source.slice(0, 8000),
     tone,
+    sharpness,
+    ctaMode,
     selectedTypes: selectedTypes.length ? selectedTypes : defaultSelectedTypes
   };
+}
+
+function sanitizeGeneratedText(value: string) {
+  return value
+    .replace(/[—–]/g, ", ")
+    .replace(/--+/g, ", ")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ ?, ?\n/g, "\n")
+    .trim();
 }
 
 function asStringArray(value: unknown): string[] {
@@ -57,7 +83,7 @@ function asStringArray(value: unknown): string[] {
 
   return value
     .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
+    .map((item) => sanitizeGeneratedText(item))
     .filter(Boolean);
 }
 
@@ -84,15 +110,18 @@ function normalizeSections(value: unknown, selectedTypes: ContentTypeId[]): Gene
         type,
         title:
           typeof candidate.title === "string" && candidate.title
-            ? candidate.title
+            ? sanitizeGeneratedText(candidate.title)
             : contentTypes.find((item) => item.id === type)?.label ?? "Output",
         platform:
           typeof candidate.platform === "string" && candidate.platform
-            ? candidate.platform
+            ? sanitizeGeneratedText(candidate.platform)
             : "General",
-        body: typeof candidate.body === "string" ? candidate.body.trim() : "",
+        body: typeof candidate.body === "string" ? sanitizeGeneratedText(candidate.body) : "",
         items: asStringArray(candidate.items),
-        cta: typeof candidate.cta === "string" ? candidate.cta.trim() : undefined
+        cta:
+          typeof candidate.cta === "string"
+            ? sanitizeGeneratedText(candidate.cta)
+            : undefined
       };
     });
 
@@ -117,13 +146,21 @@ function parseOpenAIJson(text: string, request: GenerateRequest): GenerationResu
     createdAt: new Date().toISOString(),
     source: request.source,
     tone: request.tone,
+    sharpness: request.sharpness,
+    ctaMode: request.ctaMode,
     selectedTypes: request.selectedTypes,
-    title: typeof parsed.title === "string" && parsed.title ? parsed.title : "Leadership Content Set",
+    title:
+      typeof parsed.title === "string" && parsed.title
+        ? sanitizeGeneratedText(parsed.title)
+        : "Leadership Content Set",
     summary:
       typeof parsed.summary === "string" && parsed.summary
-        ? parsed.summary
+        ? sanitizeGeneratedText(parsed.summary)
         : "Generated LeadWithNadine content from your source material.",
-    sections
+    sections: sections.map((section) => ({
+      ...section,
+      cta: request.ctaMode === "none" ? "" : section.cta
+    }))
   };
 }
 
