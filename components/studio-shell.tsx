@@ -45,6 +45,7 @@ import {
   sharpnessModes,
   tones
 } from "@/lib/content-config";
+import { copyPlainText, normaliseCopyText } from "@/lib/copy";
 import {
   addRecent,
   readStore,
@@ -179,12 +180,20 @@ function sectionMatchesFilter(section: GeneratedSection, activeFilter: FilterId)
   return contentTypes.find((type) => type.id === section.type)?.group === activeFilter;
 }
 
-async function copyText(text: string) {
-  await navigator.clipboard.writeText(text);
-}
-
 type FormatterMode = "desktop" | "mobile";
 type TextStyle = "bold" | "italic" | "boldItalic" | "underline" | "strikethrough";
+
+function sectionCopyPayload(section: GeneratedSection) {
+  return {
+    body: section.body,
+    items: section.items,
+    cta: section.cta
+  };
+}
+
+function resultCopyPayload(result: GenerationResult) {
+  return result.sections.map(sectionCopyPayload);
+}
 
 const formatterStarterText =
   "Clear leadership is not about sounding harsh.\n\nIt is about saying what needs to be said without hiding inside a long explanation.\n\nPeople trust clarity.\nNot constant reassurance.";
@@ -277,7 +286,10 @@ export function StudioShell() {
   const [hasMounted, setHasMounted] = useState(false);
   const [result, setResult] = useState<GenerationResult>(sampleResult);
   const [error, setError] = useState("");
+  const [copyError, setCopyError] = useState("");
   const [copiedId, setCopiedId] = useState("");
+  const [formatterHandoffId, setFormatterHandoffId] = useState("");
+  const [formatterText, setFormatterText] = useState(formatterStarterText);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
@@ -317,6 +329,7 @@ export function StudioShell() {
 
   async function generateContent(nextSource = source) {
     setError("");
+    setCopyError("");
     setIsPending(true);
 
     const payload: GenerateRequest = {
@@ -439,18 +452,69 @@ export function StudioShell() {
   }
 
   async function copySection(section: GeneratedSection) {
-    const text = [
-      section.title,
-      section.body,
-      ...section.items.map((item) => `- ${item}`),
-      section.cta ? `CTA: ${section.cta}` : ""
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    setCopyError("");
 
-    await copyText(text);
-    setCopiedId(section.id);
-    window.setTimeout(() => setCopiedId(""), 1400);
+    try {
+      await copyPlainText(sectionCopyPayload(section));
+      setCopiedId(section.id);
+      window.setTimeout(() => setCopiedId(""), 1400);
+    } catch (copyFailure) {
+      setCopyError(
+        copyFailure instanceof Error
+          ? copyFailure.message
+          : "Could not copy clean plain text."
+      );
+    }
+  }
+
+  async function copyHistoryResult(item: GenerationResult) {
+    setCopyError("");
+
+    try {
+      await copyPlainText(resultCopyPayload(item));
+      setCopiedId(`history:${item.id}`);
+      window.setTimeout(() => setCopiedId(""), 1400);
+    } catch (copyFailure) {
+      setCopyError(
+        copyFailure instanceof Error
+          ? copyFailure.message
+          : "Could not copy clean plain text."
+      );
+    }
+  }
+
+  async function copyDraft(draft: Draft) {
+    setCopyError("");
+
+    try {
+      await copyPlainText({ body: draft.source });
+      setCopiedId(`draft:${draft.id}`);
+      window.setTimeout(() => setCopiedId(""), 1400);
+    } catch (copyFailure) {
+      setCopyError(
+        copyFailure instanceof Error
+          ? copyFailure.message
+          : "Could not copy clean plain text."
+      );
+    }
+  }
+
+  function sendSectionToFormatter(section: GeneratedSection) {
+    setCopyError("");
+
+    try {
+      const text = normaliseCopyText(sectionCopyPayload(section));
+      setFormatterText(text);
+      setFormatterHandoffId(section.id);
+      scrollToStudioSection("formatter");
+      window.setTimeout(() => setFormatterHandoffId(""), 1400);
+    } catch (copyFailure) {
+      setCopyError(
+        copyFailure instanceof Error
+          ? copyFailure.message
+          : "Could not send clean plain text to the formatter."
+      );
+    }
   }
 
   return (
@@ -497,17 +561,24 @@ export function StudioShell() {
               activeFilter={activeFilter}
               visibleSections={visibleSections}
               error={error}
+              copyError={copyError}
               copiedId={copiedId}
+              formatterHandoffId={formatterHandoffId}
               isPending={isPending}
               onFilterChange={setActiveFilter}
               onCopySection={copySection}
+              onSendToFormatter={sendSectionToFormatter}
               onRegenerate={() => generateContent()}
               onSaveCurrent={saveCurrent}
               isSaved={isSaved(store, result)}
             />
           </section>
 
-          <LinkedInFormatterPanel id="formatter" />
+          <LinkedInFormatterPanel
+            id="formatter"
+            text={formatterText}
+            onTextChange={setFormatterText}
+          />
         </div>
 
         <HistoryPanel
@@ -531,6 +602,9 @@ export function StudioShell() {
             setMenuOpen(false);
           }}
           onLoadDraft={loadDraft}
+          copiedId={copiedId}
+          onCopyResult={copyHistoryResult}
+          onCopyDraft={copyDraft}
         />
       </div>
 
@@ -863,11 +937,14 @@ function OutputPanel({
   activeFilter,
   visibleSections,
   error,
+  copyError,
   copiedId,
+  formatterHandoffId,
   isPending,
   isSaved,
   onFilterChange,
   onCopySection,
+  onSendToFormatter,
   onRegenerate,
   onSaveCurrent
 }: {
@@ -876,11 +953,14 @@ function OutputPanel({
   activeFilter: FilterId;
   visibleSections: GeneratedSection[];
   error: string;
+  copyError: string;
   copiedId: string;
+  formatterHandoffId: string;
   isPending: boolean;
   isSaved: boolean;
   onFilterChange: (value: FilterId) => void;
   onCopySection: (section: GeneratedSection) => void;
+  onSendToFormatter: (section: GeneratedSection) => void;
   onRegenerate: () => void;
   onSaveCurrent: () => void;
 }) {
@@ -920,6 +1000,12 @@ function OutputPanel({
         </div>
       ) : null}
 
+      {copyError ? (
+        <div className="mt-4 rounded border border-red-400/40 bg-red-500/10 p-3 text-sm leading-6 text-bone">
+          {copyError}
+        </div>
+      ) : null}
+
       <div className="studio-scroll mt-4 flex gap-2 overflow-x-auto pb-2">
         {filters.map((filter) => (
           <button
@@ -947,7 +1033,9 @@ function OutputPanel({
               key={section.id}
               section={section}
               copied={copiedId === section.id}
+              sentToFormatter={formatterHandoffId === section.id}
               onCopy={() => onCopySection(section)}
+              onSendToFormatter={() => onSendToFormatter(section)}
             />
           ))
         ) : (
@@ -970,16 +1058,24 @@ function OutputPanel({
   );
 }
 
-function LinkedInFormatterPanel({ id }: { id: string }) {
-  const [text, setText] = useState(formatterStarterText);
+function LinkedInFormatterPanel({
+  id,
+  text,
+  onTextChange
+}: {
+  id: string;
+  text: string;
+  onTextChange: (value: string) => void;
+}) {
   const [previewMode, setPreviewMode] = useState<FormatterMode>("desktop");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function replaceSelection(transform: (value: string) => string) {
     const textarea = textareaRef.current;
     if (!textarea) {
-      setText((current) => transform(current));
+      onTextChange(transform(text));
       return;
     }
 
@@ -992,7 +1088,7 @@ function LinkedInFormatterPanel({ id }: { id: string }) {
       ? `${text.slice(0, start)}${replacement}${text.slice(end)}`
       : replacement;
 
-    setText(nextText);
+    onTextChange(nextText);
     window.requestAnimationFrame(() => {
       textarea.focus();
       if (hasSelection) {
@@ -1010,9 +1106,19 @@ function LinkedInFormatterPanel({ id }: { id: string }) {
   }
 
   async function copyFormattedText() {
-    await copyText(text);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+    setCopyError("");
+
+    try {
+      await copyPlainText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch (copyFailure) {
+      setCopyError(
+        copyFailure instanceof Error
+          ? copyFailure.message
+          : "Could not copy clean plain text."
+      );
+    }
   }
 
   return (
@@ -1098,7 +1204,7 @@ function LinkedInFormatterPanel({ id }: { id: string }) {
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => onTextChange(event.target.value)}
             rows={12}
             className="studio-scroll min-h-80 w-full resize-none rounded border border-line bg-ink/70 p-4 text-base leading-7 text-bone outline-none transition placeholder:text-muted/60 focus:border-violet/70 focus:ring-2 focus:ring-violet/20"
             placeholder="Write or paste your LinkedIn post here."
@@ -1110,7 +1216,7 @@ function LinkedInFormatterPanel({ id }: { id: string }) {
             </p>
             <button
               type="button"
-              onClick={() => setText("")}
+              onClick={() => onTextChange("")}
               className="flex min-h-11 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-bone transition hover:border-violet/60"
             >
               <Eraser size={16} />
@@ -1125,6 +1231,12 @@ function LinkedInFormatterPanel({ id }: { id: string }) {
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
+
+          {copyError ? (
+            <div className="mt-3 rounded border border-red-400/40 bg-red-500/10 p-3 text-sm leading-6 text-bone">
+              {copyError}
+            </div>
+          ) : null}
         </div>
 
         <div
@@ -1189,15 +1301,19 @@ function FormatterButton({
 function OutputCard({
   section,
   copied,
-  onCopy
+  sentToFormatter,
+  onCopy,
+  onSendToFormatter
 }: {
   section: GeneratedSection;
   copied: boolean;
+  sentToFormatter: boolean;
   onCopy: () => void;
+  onSendToFormatter: () => void;
 }) {
   return (
     <article className="rounded border border-white/10 bg-white/[0.035] p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
+      <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.18em] text-violet">
             {section.platform}
@@ -1205,14 +1321,24 @@ function OutputCard({
           <h3 className="mt-1 text-lg font-semibold text-bone">{section.title}</h3>
           <p className="mt-1 text-xs text-muted">{labelForContentType(section.type)}</p>
         </div>
-        <button
-          type="button"
-          onClick={onCopy}
-          className="flex min-h-10 shrink-0 items-center gap-2 rounded border border-white/10 bg-ink/70 px-3 text-xs font-semibold text-bone transition hover:border-violet/60"
-        >
-          {copied ? <Check size={15} /> : <Copy size={15} />}
-          {copied ? "Copied" : "Copy"}
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={onSendToFormatter}
+            className="flex min-h-10 items-center gap-2 rounded border border-white/10 bg-ink/70 px-3 text-xs font-semibold text-bone transition hover:border-gold/60"
+          >
+            {sentToFormatter ? <Check size={15} /> : <Type size={15} />}
+            {sentToFormatter ? "Sent" : "Format"}
+          </button>
+          <button
+            type="button"
+            onClick={onCopy}
+            className="flex min-h-10 items-center gap-2 rounded border border-white/10 bg-ink/70 px-3 text-xs font-semibold text-bone transition hover:border-violet/60"
+          >
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
       </div>
 
       {section.body ? (
@@ -1266,7 +1392,10 @@ function HistoryPanel({
   isOpen,
   onClose,
   onLoadResult,
-  onLoadDraft
+  onLoadDraft,
+  copiedId,
+  onCopyResult,
+  onCopyDraft
 }: {
   store: StudioStore;
   current: GenerationResult;
@@ -1275,6 +1404,9 @@ function HistoryPanel({
   onClose: () => void;
   onLoadResult: (value: GenerationResult) => void;
   onLoadDraft: (value: Draft) => void;
+  copiedId: string;
+  onCopyResult: (value: GenerationResult) => void;
+  onCopyDraft: (value: Draft) => void;
 }) {
   const recent = store.recent.length ? store.recent : [current];
 
@@ -1327,6 +1459,8 @@ function HistoryPanel({
                     : labelForTone(item.tone)
                 }
                 onClick={() => onLoadResult(item)}
+                copied={copiedId === `history:${item.id}`}
+                onCopy={() => onCopyResult(item)}
               />
             )}
           />
@@ -1345,6 +1479,8 @@ function HistoryPanel({
                     : `${item.sections.length} sections`
                 }
                 onClick={() => onLoadResult(item)}
+                copied={copiedId === `history:${item.id}`}
+                onCopy={() => onCopyResult(item)}
               />
             )}
           />
@@ -1364,6 +1500,8 @@ function HistoryPanel({
                     : labelForTone(item.tone)
                 }
                 onClick={() => onLoadDraft(item)}
+                copied={copiedId === `draft:${item.id}`}
+                onCopy={() => onCopyDraft(item)}
               />
             )}
           />
@@ -1407,26 +1545,38 @@ function HistoryGroup<T>({
 function HistoryButton({
   title,
   meta,
-  onClick
+  copied,
+  onClick,
+  onCopy
 }: {
   title: string;
   meta: string;
+  copied: boolean;
   onClick: () => void;
+  onCopy: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-16 w-full items-center justify-between gap-3 rounded border border-white/10 bg-ink/55 p-3 text-left transition hover:border-violet/60"
-    >
-      <span className="min-w-0">
+    <div className="flex min-h-16 w-full items-center justify-between gap-3 rounded border border-white/10 bg-ink/55 p-3 transition hover:border-violet/60">
+      <button type="button" onClick={onClick} className="min-w-0 flex-1 text-left">
         <span className="line-clamp-2 block text-sm font-semibold leading-5 text-bone">
           {title}
         </span>
         <span className="mt-1 block truncate text-xs text-muted">{meta}</span>
+      </button>
+      <span className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onCopy}
+          className="grid h-9 w-9 place-items-center rounded border border-white/10 bg-white/[0.04] text-muted transition hover:border-violet/60 hover:text-bone"
+          aria-label={`Copy ${title}`}
+        >
+          {copied ? <Check size={15} /> : <Copy size={15} />}
+        </button>
+        <button type="button" onClick={onClick} aria-label={`Open ${title}`}>
+          <ChevronRight className="text-goldSoft" size={17} />
+        </button>
       </span>
-      <ChevronRight className="shrink-0 text-goldSoft" size={17} />
-    </button>
+    </div>
   );
 }
 

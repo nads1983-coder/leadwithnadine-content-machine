@@ -89,7 +89,7 @@ Return only valid JSON matching this shape:
       "id": "stable-kebab-id",
       "type": "one requested content type id",
       "title": "section title",
-      "platform": "LinkedIn | Instagram | TikTok | YouTube Shorts | Threads | Visual | General",
+      "platform": "LinkedIn | Instagram | X/Twitter | Facebook | TikTok | YouTube Shorts | Threads | Visual | General",
       "body": "main copy, script, rewrite, or explanation",
       "items": ["supporting options, tags, slides, hooks, or bullets"],
       "cta": "optional CTA"
@@ -162,6 +162,21 @@ Instagram style:
 - captions can be warmer than LinkedIn, but still calm and firm
 - hashtag guidance: 5 to 7 tags, mix niche leadership tags with brand-relevant tags
 
+X/Twitter style:
+- concise, tension-led, and readable without a thread
+- no bait phrasing, no exaggerated certainty
+- hashtag guidance: 0 to 2 tags only if they add search value
+
+Facebook style:
+- natural paragraph flow, grounded workplace observation, and human clarity
+- can be slightly warmer than LinkedIn, but should still stay controlled
+- hashtag guidance: 2 to 4 tags, restrained and relevant
+
+General Post style:
+- platform-flexible social copy with no platform label in the body
+- keep the core leadership observation readable on mobile
+- hashtag guidance: use only if the selected angle clearly benefits from tags
+
 TikTok style:
 - very short captions
 - sharper emotional framing
@@ -186,9 +201,11 @@ Threads style:
 - hashtag guidance: 1 to 3 tags only if useful
 
 Platform hashtag rules:
-- If Platform Hashtags are requested, create separate labeled sets for LinkedIn, Instagram, TikTok, YouTube Shorts, and Threads.
+- If Platform Hashtags are requested, create separate labeled sets for LinkedIn, Instagram, X/Twitter, Facebook, TikTok, YouTube Shorts, and Threads.
 - LinkedIn: 3 to 5 hashtags, professional and topic-specific.
 - Instagram: 5 to 7 hashtags, discoverable but not generic.
+- X/Twitter: 0 to 2 hashtags, only search-relevant.
+- Facebook: 2 to 4 hashtags, restrained and readable.
 - TikTok: 3 to 5 hashtags, sharp and searchable.
 - YouTube Shorts: 8 to 12 searchable tags or tag phrases. They do not all need hashtag symbols.
 - Threads: 1 to 3 tags, restrained.

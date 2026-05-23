@@ -31,6 +31,27 @@ export const contentTypes: ContentTypeConfig[] = [
     prompt: "Three Instagram captions with a strong first line, grounded emotional clarity, natural paragraph rhythm, and no more than seven hashtags each."
   },
   {
+    id: "xTwitter",
+    label: "X/Twitter Posts",
+    shortLabel: "X/Twitter",
+    group: "xTwitter",
+    prompt: "Three concise X/Twitter posts with sharp first lines, plain spoken authority, and no inflated thread-bait language."
+  },
+  {
+    id: "facebook",
+    label: "Facebook Posts",
+    shortLabel: "Facebook",
+    group: "facebook",
+    prompt: "Two Facebook posts with natural paragraph flow, grounded workplace observation, and calm authority without motivational polish."
+  },
+  {
+    id: "generalPost",
+    label: "General Posts",
+    shortLabel: "General",
+    group: "all",
+    prompt: "One platform-flexible social post that keeps the leadership point clear, human, and concise."
+  },
+  {
     id: "tiktok",
     label: "TikTok Captions",
     shortLabel: "TikTok",
@@ -77,7 +98,7 @@ export const contentTypes: ContentTypeConfig[] = [
     label: "Platform Hashtags",
     shortLabel: "Hashtags",
     group: "hashtags",
-    prompt: "Hashtag sets for LinkedIn, TikTok, Instagram, YouTube Shorts, and Threads. Keep each set platform-appropriate and avoid generic motivational tags."
+    prompt: "Hashtag sets for LinkedIn, Instagram, X/Twitter, Facebook, TikTok, YouTube Shorts, and Threads. Keep each set platform-appropriate and avoid generic motivational tags."
   },
   {
     id: "videoHooks",
@@ -283,6 +304,8 @@ export const filters: Array<{ id: FilterId; label: string }> = [
   { id: "all", label: "All" },
   { id: "linkedin", label: "LinkedIn" },
   { id: "instagram", label: "Instagram" },
+  { id: "xTwitter", label: "X/Twitter" },
+  { id: "facebook", label: "Facebook" },
   { id: "tiktok", label: "TikTok" },
   { id: "hashtags", label: "Hashtags" },
   { id: "hooks", label: "Hooks" },
@@ -296,6 +319,9 @@ export const filters: Array<{ id: FilterId; label: string }> = [
 export const defaultSelectedTypes: ContentTypeId[] = [
   "linkedin",
   "instagram",
+  "xTwitter",
+  "facebook",
+  "generalPost",
   "hooks",
   "youtubeScripts",
   "tiktok",

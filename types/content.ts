@@ -1,6 +1,9 @@
 export type ContentTypeId =
   | "linkedin"
   | "instagram"
+  | "xTwitter"
+  | "facebook"
+  | "generalPost"
   | "tiktok"
   | "hooks"
   | "carousel"
@@ -45,6 +48,8 @@ export type FilterId =
   | "all"
   | "linkedin"
   | "instagram"
+  | "xTwitter"
+  | "facebook"
   | "tiktok"
   | "hashtags"
   | "hooks"
