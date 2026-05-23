@@ -5,15 +5,25 @@ export type OutputDisplay = {
   title: string;
   hook?: string;
   subject?: string;
+  subjectOptions: string[];
   preview?: string;
   youtubeTitle?: string;
   description?: string;
   paragraphs: string[];
+  platformSections: PlatformDisplaySection[];
   tweets: string[];
   supportingItems: string[];
   hashtags: string[];
   tags: string[];
   cta?: string;
+};
+
+export type PlatformDisplaySection = {
+  label: string;
+  paragraphs: string[];
+  cta?: string;
+  hashtags: string[];
+  tags: string[];
 };
 
 const urlPattern = /\b(?:blob:|https?:\/\/|www\.)\S+/gi;
@@ -26,6 +36,7 @@ const platformLabels: Partial<Record<ContentTypeId, string>> = {
   xTwitter: "X/Twitter",
   facebook: "Facebook",
   generalPost: "General Post",
+  repurposePack: "Repurpose Pack",
   tiktok: "TikTok",
   threads: "Thread",
   youtubeScripts: "YouTube Shorts",
@@ -181,12 +192,13 @@ function classifyItems(items: string[]) {
   const tweets: string[] = [];
   const hashtags: string[] = [];
   const tags: string[] = [];
+  const subjectOptions: string[] = [];
   const supportingItems: string[] = [];
 
   for (const item of items.flatMap(splitLineItems)) {
     const cleaned = cleanDisplayText(item);
     const normalized = cleaned.toLowerCase();
-    const value = cleaned.replace(/^(hook|cta|tags?|hashtags?|tweet\s*\d*|post\s*\d*|title|description|subject|preview)\s*:\s*/i, "").trim();
+    const value = cleaned.replace(/^(hook|caption|short caption|cta|tags?|hashtags?|tweet\s*\d*|post\s*\d*|title|description|subject option|subject|preview)\s*:\s*/i, "").trim();
 
     if (!value) {
       continue;
@@ -194,6 +206,8 @@ function classifyItems(items: string[]) {
 
     if (/^hook\s*:/i.test(cleaned)) {
       hooks.push(value);
+    } else if (/^subject option\s*:/i.test(cleaned) || /^subject\s*\d*\s*:/i.test(cleaned)) {
+      subjectOptions.push(value);
     } else if (/^(tweet\s*\d*|post\s*\d*|\d+\/|\d+\.)/i.test(cleaned)) {
       tweets.push(value);
     } else if (normalized.includes("hashtag") || isHashtagLine(cleaned)) {
@@ -210,6 +224,7 @@ function classifyItems(items: string[]) {
     tweets: unique(tweets),
     hashtags: unique(hashtags),
     tags: unique(tags),
+    subjectOptions: unique(subjectOptions),
     supportingItems: unique(supportingItems)
   };
 }
@@ -222,6 +237,110 @@ function threadFromText(value: string) {
 
   const numbered = lines.filter((line) => /^(\d+\/|\d+\.)\s*/.test(line));
   return numbered.length >= 2 ? numbered : [];
+}
+
+const repurposeLabels = [
+  "LinkedIn",
+  "Instagram",
+  "TikTok",
+  "X/Twitter",
+  "Twitter",
+  "Facebook",
+  "YouTube Shorts",
+  "YouTube",
+  "Email",
+  "Carousel",
+  "Thread",
+  "Threads"
+];
+
+function repurposeSectionsFromText(value: string): PlatformDisplaySection[] {
+  const lines = cleanDisplayText(value).split("\n");
+  const sections: PlatformDisplaySection[] = [];
+  let current: { label: string; lines: string[] } | null = null;
+
+  for (const line of lines) {
+    const cleaned = line.replace(/^#+\s*/, "").replace(/^\*\*(.+)\*\*$/, "$1").trim();
+    const label = repurposeLabels.find((item) =>
+      new RegExp(`^${item.replace("/", "\\/")}\\s*:?$`, "i").test(cleaned)
+    );
+
+    if (label) {
+      if (current) {
+        sections.push(buildPlatformSection(current.label, current.lines.join("\n")));
+      }
+      current = { label: label === "Twitter" ? "X/Twitter" : label, lines: [] };
+      continue;
+    }
+
+    if (current) {
+      current.lines.push(line);
+    }
+  }
+
+  if (current) {
+    sections.push(buildPlatformSection(current.label, current.lines.join("\n")));
+  }
+
+  return sections.filter((section) => section.paragraphs.length || section.hashtags.length || section.tags.length || section.cta);
+}
+
+function buildPlatformSection(label: string, value: string): PlatformDisplaySection {
+  const paragraphs = splitParagraphs(removeLabeledLines(value, ["cta", "hashtags", "tags"]));
+  const lines = splitLineItems(value);
+  const cta =
+    lines.find((line) => /^cta\s*:/i.test(line))?.replace(/^cta\s*:\s*/i, "").trim() ?? "";
+  const hashtags = lines
+    .filter((line) => /^hashtags?\s*:/i.test(line) || isHashtagLine(line))
+    .flatMap(hashtagsFrom);
+  const tags = lines
+    .filter((line) => /^tags?\s*:/i.test(line))
+    .flatMap((line) =>
+      line
+        .replace(/^tags?\s*:\s*/i, "")
+        .split(/[,|]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+    );
+
+  return {
+    label,
+    paragraphs: unique(paragraphs.filter((paragraph) => !isHashtagLine(paragraph))),
+    cta: cleanDisplayText(cta),
+    hashtags: unique(hashtags),
+    tags: unique(tags)
+  };
+}
+
+function platformHashtagSectionsFromItems(items: string[]): PlatformDisplaySection[] {
+  return items
+    .flatMap(splitLineItems)
+    .map((item): PlatformDisplaySection | null => {
+      const match = item.match(/^([^:]+):\s*(.+)$/);
+      if (!match) {
+        return null;
+      }
+
+      const label = cleanDisplayText(match[1]);
+      const value = cleanDisplayText(match[2]);
+      const hashtags = hashtagsFrom(value);
+      const tags =
+        hashtags.length > 0
+          ? []
+          : value
+              .split(/[,|]/)
+              .map((tag) => tag.trim())
+              .filter(Boolean);
+
+      return {
+        label,
+        paragraphs: [] as string[],
+        hashtags: unique(hashtags),
+        tags: unique(tags),
+        cta: ""
+      } satisfies PlatformDisplaySection;
+    })
+    .filter((section): section is PlatformDisplaySection => section !== null);
 }
 
 export function buildOutputDisplay(section: GeneratedSection): OutputDisplay {
@@ -268,6 +387,12 @@ export function buildOutputDisplay(section: GeneratedSection): OutputDisplay {
   let paragraphs = splitParagraphs(
     removeLabeledLines(plainBody, ["subject", "subject line", "preview", "opening line", "hook", "title"])
   );
+  const platformSections =
+    section.type === "repurposePack"
+      ? repurposeSectionsFromText(plainBody)
+      : section.type === "platformHashtags"
+        ? platformHashtagSectionsFromItems(section.items.length ? section.items : splitLineItems(plainBody))
+        : [];
   let hashtags = [...classified.hashtags];
   const tags = [...classified.tags];
   let tweets = [...classified.tweets];
@@ -277,6 +402,10 @@ export function buildOutputDisplay(section: GeneratedSection): OutputDisplay {
     const split = splitCaptionHashtags(paragraphs);
     paragraphs = split.body;
     hashtags = [...hashtags, ...split.hashtags];
+    if (!paragraphs.length && classified.supportingItems.length) {
+      paragraphs = [classified.supportingItems[0]];
+      supportingItems = supportingItems.filter((item) => item !== classified.supportingItems[0]);
+    }
   }
 
   if (section.type === "xTwitter" || section.type === "threads") {
@@ -306,15 +435,24 @@ export function buildOutputDisplay(section: GeneratedSection): OutputDisplay {
     });
   }
 
+  if (platformSections.length) {
+    paragraphs = [];
+    supportingItems = [];
+    hashtags = [];
+    tags.length = 0;
+  }
+
   return {
     platformLabel: platformLabels[section.type] ?? section.platform,
     title: section.title,
     hook,
     subject,
+    subjectOptions: classified.subjectOptions,
     preview,
     youtubeTitle,
     description,
     paragraphs: unique(paragraphs),
+    platformSections,
     tweets: unique(tweets),
     supportingItems: unique(supportingItems),
     hashtags: unique(hashtags),

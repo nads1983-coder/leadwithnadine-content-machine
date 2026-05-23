@@ -33,6 +33,7 @@ const platformFieldOrder = [
   "thread",
   "carousel",
   "generalPost",
+  "repurposePack",
   "imagePrompt",
   "email"
 ] as const;

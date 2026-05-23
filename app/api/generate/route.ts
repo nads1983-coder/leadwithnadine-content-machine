@@ -147,6 +147,51 @@ function normalizeSections(value: unknown, selectedTypes: ContentTypeId[]): Gene
   return normalized.filter((section): section is GeneratedSection => section !== null);
 }
 
+function textWithoutHashtags(value: string) {
+  return sanitizeGeneratedText(value)
+    .replace(/#[\p{L}\p{N}_]+/gu, "")
+    .replace(/[,\s|]+/g, " ")
+    .trim();
+}
+
+function sourceFallbackCaption(source: string, platform: "Instagram" | "TikTok") {
+  const firstThought =
+    source
+      .split(/\n{2,}|(?<=[.!?])\s+/)
+      .map((part) => sanitizeGeneratedText(part))
+      .find((part) => part.length > 18) ?? source;
+
+  const concise = sanitizeGeneratedText(firstThought).slice(0, platform === "TikTok" ? 160 : 320);
+  return platform === "TikTok"
+    ? concise
+    : `${concise}\n\nClear leadership does not need to be overexplained.`;
+}
+
+function repairPlatformSection(
+  section: GeneratedSection,
+  request: GenerateRequest
+): GeneratedSection {
+  if (section.type !== "instagram" && section.type !== "tiktok") {
+    return section;
+  }
+
+  const bodyHasWords = textWithoutHashtags(section.body).length > 8;
+  if (bodyHasWords) {
+    return section;
+  }
+
+  const itemCaption = section.items.find((item) => textWithoutHashtags(item).length > 8);
+  const fallbackBody =
+    itemCaption ?? sourceFallbackCaption(request.source, section.type === "tiktok" ? "TikTok" : "Instagram");
+  const hashtagItems = section.items.filter((item) => item.includes("#"));
+
+  return {
+    ...section,
+    body: sanitizeGeneratedText(fallbackBody),
+    items: hashtagItems.length ? hashtagItems : section.items
+  };
+}
+
 function parseOpenAIJson(text: string, request: GenerateRequest): GenerationResult {
   const parsed = JSON.parse(text) as {
     title?: unknown;
@@ -177,10 +222,15 @@ function parseOpenAIJson(text: string, request: GenerateRequest): GenerationResu
       typeof parsed.summary === "string" && parsed.summary
         ? sanitizeGeneratedText(parsed.summary)
         : "Generated LeadWithNadine content from your source material.",
-    sections: sections.map((section) => ({
-      ...section,
-      cta: request.ctaMode === "none" ? "" : section.cta
-    }))
+    sections: sections.map((section) =>
+      repairPlatformSection(
+        {
+          ...section,
+          cta: request.ctaMode === "none" ? "" : section.cta
+        },
+        request
+      )
+    )
   };
 }
 

@@ -99,6 +99,8 @@ Return only valid JSON matching this shape:
 
 Every requested content type must have one section.
 Keep copy specific, premium, and realistic.
+For Instagram and TikTok, body must contain the caption or hook text. Never return hashtags only.
+For email, put the primary subject line at the top of body as "Subject line: ..." and include any extra subject options in items as "Subject option: ...".
 Before finalizing, remove any em dashes or double hyphens from every title, body, item, summary, and CTA.`;
 }
 
@@ -157,6 +159,7 @@ LinkedIn style:
 
 Instagram style:
 - strong first line that works before the caption expands
+- body must be a real caption, never hashtags only
 - grounded and emotionally observant, but still easy to read on mobile
 - natural spacing, short paragraphs, and no inflated inspiration
 - captions can be warmer than LinkedIn, but still calm and firm
@@ -177,12 +180,20 @@ General Post style:
 - keep the core leadership observation readable on mobile
 - hashtag guidance: use only if the selected angle clearly benefits from tags
 
+Repurpose Pack style:
+- do not write one large paragraph
+- split into clear platform blocks labeled LinkedIn, Instagram, TikTok, X/Twitter, Facebook, YouTube Shorts, Email, and Carousel or Thread if useful
+- each block needs its own short body
+- put hashtags inside the matching platform block, not as an unstructured pile
+- keep each platform compact enough to scan on mobile
+
 TikTok style:
 - very short captions
 - sharper emotional framing
 - strong first line
 - maximum five hashtags
 - no filler
+- body must be the caption or hook text, not hashtags only
 - hashtag guidance: 3 to 5 tags, direct and searchable, no viral bait
 
 YouTube Shorts style:

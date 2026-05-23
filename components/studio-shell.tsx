@@ -1313,6 +1313,13 @@ function OutputCard({
   onSendToFormatter: () => void;
 }) {
   const display = buildOutputDisplay(section);
+  const canUseFormatter = ![
+    "platformHashtags",
+    "youtubeTags",
+    "imagePrompts",
+    "quoteGraphics",
+    "ctas"
+  ].includes(section.type);
 
   return (
     <article className="rounded border border-white/10 bg-white/[0.035] p-4">
@@ -1325,14 +1332,16 @@ function OutputCard({
           <p className="mt-1 text-xs text-muted">{labelForContentType(section.type)}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onSendToFormatter}
-            className="flex min-h-10 items-center gap-2 rounded border border-white/10 bg-ink/70 px-3 text-xs font-semibold text-bone transition hover:border-gold/60"
-          >
-            {sentToFormatter ? <Check size={15} /> : <Type size={15} />}
-            {sentToFormatter ? "Sent" : "Format"}
-          </button>
+          {canUseFormatter ? (
+            <button
+              type="button"
+              onClick={onSendToFormatter}
+              className="flex min-h-10 items-center gap-2 rounded border border-white/10 bg-ink/70 px-3 text-xs font-semibold text-bone transition hover:border-gold/60"
+            >
+              {sentToFormatter ? <Check size={15} /> : <Type size={15} />}
+              {sentToFormatter ? "Sent" : "Format"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onCopy}
@@ -1362,6 +1371,10 @@ function PlatformOutputDisplay({
         <OutputCallout label="Subject" value={display.subject} tone="gold" />
       ) : null}
 
+      {display.subjectOptions.length ? (
+        <OutputList label="Subject options" items={display.subjectOptions} />
+      ) : null}
+
       {display.preview ? (
         <OutputCallout label="Preview" value={display.preview} tone="violet" />
       ) : null}
@@ -1372,6 +1385,49 @@ function PlatformOutputDisplay({
 
       {display.description ? (
         <OutputTextGroup label="Description" paragraphs={[display.description]} />
+      ) : null}
+
+      {display.platformSections.length ? (
+        <div className="grid gap-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+            Platform sections
+          </p>
+          {display.platformSections.map((section, index) => (
+            <div
+              key={`${section.label}-${index}`}
+              className="rounded border border-white/10 bg-ink/52 p-3"
+            >
+              <p className="mb-3 text-sm font-semibold text-bone">{section.label}</p>
+              {section.paragraphs.length ? (
+                <div className="space-y-3">
+                  {section.paragraphs.map((paragraph, paragraphIndex) => (
+                    <p
+                      key={`${paragraph}-${paragraphIndex}`}
+                      className="whitespace-pre-line text-sm leading-6 text-bone/92"
+                    >
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+              {section.hashtags.length ? (
+                <div className="mt-3">
+                  <OutputPills label="Hashtags" items={section.hashtags} />
+                </div>
+              ) : null}
+              {section.tags.length ? (
+                <div className="mt-3">
+                  <OutputPills label="Tags" items={section.tags} />
+                </div>
+              ) : null}
+              {section.cta ? (
+                <div className="mt-3">
+                  <OutputCallout label="CTA" value={section.cta} tone="violet" />
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
       ) : null}
 
       {display.tweets.length ? (

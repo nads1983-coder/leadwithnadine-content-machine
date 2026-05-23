@@ -4,6 +4,7 @@ export type ContentTypeId =
   | "xTwitter"
   | "facebook"
   | "generalPost"
+  | "repurposePack"
   | "tiktok"
   | "hooks"
   | "carousel"

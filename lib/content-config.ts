@@ -52,6 +52,13 @@ export const contentTypes: ContentTypeConfig[] = [
     prompt: "One platform-flexible social post that keeps the leadership point clear, human, and concise."
   },
   {
+    id: "repurposePack",
+    label: "Repurpose Pack",
+    shortLabel: "Repurpose",
+    group: "all",
+    prompt: "A compact repurpose pack split clearly by platform: LinkedIn, Instagram, TikTok, X/Twitter, Facebook, YouTube Shorts, Email, and Carousel or Thread when useful. Each platform block must have its own heading and body."
+  },
+  {
     id: "tiktok",
     label: "TikTok Captions",
     shortLabel: "TikTok",
@@ -330,6 +337,7 @@ export const defaultSelectedTypes: ContentTypeId[] = [
   "xTwitter",
   "facebook",
   "generalPost",
+  "repurposePack",
   "hooks",
   "youtubeScripts",
   "email",
