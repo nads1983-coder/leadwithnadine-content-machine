@@ -17,6 +17,7 @@ export type ContentTypeId =
   | "youtubeTitles"
   | "youtubeDescriptions"
   | "youtubeTags"
+  | "email"
   | "platformHashtags";
 
 export type ToneId =
@@ -55,6 +56,7 @@ export type FilterId =
   | "hooks"
   | "carousel"
   | "youtube"
+  | "email"
   | "rewrites"
   | "visuals"
   | "saved";

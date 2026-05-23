@@ -53,6 +53,7 @@ import {
   upsertDraft,
   writeStore
 } from "@/lib/storage";
+import { buildOutputDisplay } from "@/lib/output-format";
 import {
   ContentTypeId,
   CtaModeId,
@@ -1311,14 +1312,16 @@ function OutputCard({
   onCopy: () => void;
   onSendToFormatter: () => void;
 }) {
+  const display = buildOutputDisplay(section);
+
   return (
     <article className="rounded border border-white/10 bg-white/[0.035] p-4">
       <div className="mb-3 flex flex-col items-start justify-between gap-3 sm:flex-row">
         <div className="min-w-0">
           <p className="text-xs uppercase tracking-[0.18em] text-violet">
-            {section.platform}
+            {display.platformLabel}
           </p>
-          <h3 className="mt-1 text-lg font-semibold text-bone">{section.title}</h3>
+          <h3 className="mt-1 text-lg font-semibold text-bone">{display.title}</h3>
           <p className="mt-1 text-xs text-muted">{labelForContentType(section.type)}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -1341,31 +1344,163 @@ function OutputCard({
         </div>
       </div>
 
-      {section.body ? (
-        <p className="whitespace-pre-line text-[0.95rem] leading-7 text-bone/92">
-          {section.body}
-        </p>
+      <PlatformOutputDisplay display={display} />
+    </article>
+  );
+}
+
+function PlatformOutputDisplay({
+  display
+}: {
+  display: ReturnType<typeof buildOutputDisplay>;
+}) {
+  return (
+    <div className="space-y-4">
+      {display.hook ? <OutputCallout label="Hook" value={display.hook} tone="gold" /> : null}
+
+      {display.subject ? (
+        <OutputCallout label="Subject" value={display.subject} tone="gold" />
       ) : null}
 
-      {section.items.length ? (
-        <ul className="mt-4 grid gap-2">
-          {section.items.map((item) => (
-            <li
-              key={item}
-              className="border-l-2 border-gold/70 bg-ink/42 py-2 pl-3 text-sm leading-6 text-muted"
+      {display.preview ? (
+        <OutputCallout label="Preview" value={display.preview} tone="violet" />
+      ) : null}
+
+      {display.youtubeTitle ? (
+        <OutputCallout label="Title" value={display.youtubeTitle} tone="gold" />
+      ) : null}
+
+      {display.description ? (
+        <OutputTextGroup label="Description" paragraphs={[display.description]} />
+      ) : null}
+
+      {display.tweets.length ? (
+        <div className="grid gap-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+            Thread
+          </p>
+          {display.tweets.map((tweet, index) => (
+            <div
+              key={`${tweet}-${index}`}
+              className="rounded border border-white/10 bg-ink/52 p-3"
             >
-              {item}
-            </li>
+              <p className="mb-2 text-xs font-semibold text-violet">
+                {index + 1}/{display.tweets.length}
+              </p>
+              <p className="whitespace-pre-line text-sm leading-6 text-bone/92">{tweet}</p>
+            </div>
           ))}
-        </ul>
-      ) : null}
-
-      {section.cta ? (
-        <div className="mt-4 rounded border border-violet/40 bg-violet/10 p-3 text-sm leading-6 text-bone">
-          {section.cta}
         </div>
       ) : null}
-    </article>
+
+      {display.paragraphs.length ? (
+        <OutputTextGroup label="Body" paragraphs={display.paragraphs} />
+      ) : null}
+
+      {display.supportingItems.length ? (
+        <OutputList label="Details" items={display.supportingItems} />
+      ) : null}
+
+      {display.hashtags.length ? (
+        <OutputPills label="Hashtags" items={display.hashtags} />
+      ) : null}
+
+      {display.tags.length ? <OutputPills label="Tags" items={display.tags} /> : null}
+
+      {display.cta ? <OutputCallout label="CTA" value={display.cta} tone="violet" /> : null}
+    </div>
+  );
+}
+
+function OutputTextGroup({
+  label,
+  paragraphs
+}: {
+  label: string;
+  paragraphs: string[];
+}) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+        {label}
+      </p>
+      <div className="space-y-3 rounded border border-white/10 bg-ink/38 p-3">
+        {paragraphs.map((paragraph, index) => (
+          <p
+            key={`${paragraph}-${index}`}
+            className="whitespace-pre-line text-[0.95rem] leading-7 text-bone/92"
+          >
+            {paragraph}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OutputList({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+        {label}
+      </p>
+      <ul className="grid gap-2">
+        {items.map((item, index) => (
+          <li
+            key={`${item}-${index}`}
+            className="border-l-2 border-gold/70 bg-ink/42 py-2 pl-3 text-sm leading-6 text-muted"
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function OutputPills({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+        {label}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {items.map((item, index) => (
+          <span
+            key={`${item}-${index}`}
+            className="rounded border border-violet/40 bg-violet/10 px-2.5 py-1.5 text-xs font-semibold text-bone"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OutputCallout({
+  label,
+  value,
+  tone
+}: {
+  label: string;
+  value: string;
+  tone: "gold" | "violet";
+}) {
+  return (
+    <div
+      className={clsx(
+        "rounded border p-3 text-sm leading-6 text-bone",
+        tone === "gold"
+          ? "border-gold/45 bg-gold/10"
+          : "border-violet/40 bg-violet/10"
+      )}
+    >
+      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-muted">
+        {label}
+      </p>
+      <p className="whitespace-pre-line">{value}</p>
+    </div>
   );
 }
 

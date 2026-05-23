@@ -89,7 +89,7 @@ Return only valid JSON matching this shape:
       "id": "stable-kebab-id",
       "type": "one requested content type id",
       "title": "section title",
-      "platform": "LinkedIn | Instagram | X/Twitter | Facebook | TikTok | YouTube Shorts | Threads | Visual | General",
+      "platform": "LinkedIn | Instagram | X/Twitter | Facebook | TikTok | YouTube Shorts | Email | Threads | Visual | General",
       "body": "main copy, script, rewrite, or explanation",
       "items": ["supporting options, tags, slides, hooks, or bullets"],
       "cta": "optional CTA"
@@ -194,6 +194,13 @@ YouTube Shorts style:
 - SEO-aware descriptions and searchable tags when requested
 - calm, controlled delivery with subtitles
 - tag guidance: searchable tag phrases, not hashtag clutter
+
+Email style:
+- include a subject line
+- include a preview or opening line when useful
+- body should be concise, calm, and direct
+- use a clear CTA or sign-off only when it fits the selected CTA mode
+- no corporate memo language
 
 Threads style:
 - brief, conversational, and tension-led

@@ -148,6 +148,13 @@ export const contentTypes: ContentTypeConfig[] = [
     shortLabel: "YT Tags",
     group: "youtube",
     prompt: "A searchable YouTube tag set for leadership communication, difficult conversations, and overexplaining."
+  },
+  {
+    id: "email",
+    label: "Email",
+    shortLabel: "Email",
+    group: "email",
+    prompt: "One concise email with a subject line, preview or opening line, body, and calm CTA or sign-off when useful."
   }
 ];
 
@@ -311,6 +318,7 @@ export const filters: Array<{ id: FilterId; label: string }> = [
   { id: "hooks", label: "Hooks" },
   { id: "carousel", label: "Carousel" },
   { id: "youtube", label: "YouTube" },
+  { id: "email", label: "Email" },
   { id: "rewrites", label: "Rewrites" },
   { id: "visuals", label: "Visuals" },
   { id: "saved", label: "Saved" }
@@ -324,6 +332,7 @@ export const defaultSelectedTypes: ContentTypeId[] = [
   "generalPost",
   "hooks",
   "youtubeScripts",
+  "email",
   "tiktok",
   "platformHashtags",
   "imagePrompts"

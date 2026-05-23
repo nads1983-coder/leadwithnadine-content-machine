@@ -6,6 +6,11 @@ const readableFieldOrder = [
   "post",
   "thread",
   "prompt",
+  "subject",
+  "subjectLine",
+  "preview",
+  "previewLine",
+  "openingLine",
   "value",
   "description",
   "script",
@@ -28,7 +33,8 @@ const platformFieldOrder = [
   "thread",
   "carousel",
   "generalPost",
-  "imagePrompt"
+  "imagePrompt",
+  "email"
 ] as const;
 
 const excludedKeyPattern =
