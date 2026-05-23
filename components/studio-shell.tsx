@@ -9,9 +9,11 @@ import {
   ChevronRight,
   Clipboard,
   Copy,
+  Download,
   Eraser,
   FileText,
   History,
+  ImageIcon,
   Italic,
   List,
   ListOrdered,
@@ -54,6 +56,13 @@ import {
   writeStore
 } from "@/lib/storage";
 import { buildOutputDisplay } from "@/lib/output-format";
+import {
+  ImagePlatformId,
+  ImageStyleId,
+  defaultImagePlatformForContentType,
+  imagePlatformOptions,
+  imageStyleOptions
+} from "@/lib/image-generation";
 import {
   ContentTypeId,
   CtaModeId,
@@ -183,6 +192,15 @@ function sectionMatchesFilter(section: GeneratedSection, activeFilter: FilterId)
 
 type FormatterMode = "desktop" | "mobile";
 type TextStyle = "bold" | "italic" | "boldItalic" | "underline" | "strikethrough";
+
+type GeneratedImage = {
+  imageDataUrl: string;
+  prompt: string;
+  platform: ImagePlatformId;
+  style: ImageStyleId;
+  size: string;
+  createdAt: string;
+};
 
 function sectionCopyPayload(section: GeneratedSection) {
   return {
@@ -1354,7 +1372,240 @@ function OutputCard({
       </div>
 
       <PlatformOutputDisplay display={display} />
+
+      {canUseFormatter ? (
+        <ImageGenerationPanel section={section} display={display} />
+      ) : null}
     </article>
+  );
+}
+
+function ImageGenerationPanel({
+  section,
+  display
+}: {
+  section: GeneratedSection;
+  display: ReturnType<typeof buildOutputDisplay>;
+}) {
+  const [platform, setPlatform] = useState<ImagePlatformId>(() =>
+    defaultImagePlatformForContentType(section.type)
+  );
+  const [style, setStyle] = useState<ImageStyleId>("premium-quote");
+  const [customInstruction, setCustomInstruction] = useState("");
+  const [image, setImage] = useState<GeneratedImage | null>(null);
+  const [imageError, setImageError] = useState("");
+  const [promptCopied, setPromptCopied] = useState(false);
+  const [imageSaved, setImageSaved] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const imageSourceText = useMemo(() => {
+    try {
+      return normaliseCopyText(sectionCopyPayload(section));
+    } catch {
+      return [display.hook, ...display.paragraphs, ...display.tweets, display.cta]
+        .filter(Boolean)
+        .join("\n\n");
+    }
+  }, [display, section]);
+
+  async function generateImage() {
+    if (isGenerating) {
+      return;
+    }
+
+    setImageError("");
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          postText: imageSourceText,
+          platform,
+          style,
+          customInstruction
+        })
+      });
+      const data = (await response.json()) as GeneratedImage | { error?: string };
+
+      if (!response.ok) {
+        const message = "error" in data ? data.error : undefined;
+        throw new Error(message ?? "Image generation failed.");
+      }
+
+      if (!("imageDataUrl" in data)) {
+        throw new Error("Image generation returned an unexpected response.");
+      }
+
+      setImage(data);
+      setImageSaved(false);
+    } catch (error) {
+      setImageError(
+        error instanceof Error
+          ? error.message
+          : "Image generation failed. Try again."
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  async function copyImagePrompt() {
+    if (!image?.prompt) {
+      return;
+    }
+
+    try {
+      await copyPlainText(image.prompt);
+      setPromptCopied(true);
+      window.setTimeout(() => setPromptCopied(false), 1400);
+    } catch {
+      setImageError("Could not copy the image direction.");
+    }
+  }
+
+  function saveGeneratedImage() {
+    if (!image) {
+      return;
+    }
+
+    try {
+      const raw = window.localStorage.getItem("lwn-generated-images:v1");
+      const current = raw ? (JSON.parse(raw) as unknown[]) : [];
+      const next = [
+        {
+          id: crypto.randomUUID(),
+          sectionId: section.id,
+          title: section.title,
+          imageDataUrl: image.imageDataUrl,
+          prompt: image.prompt,
+          platform: image.platform,
+          style: image.style,
+          size: image.size,
+          createdAt: image.createdAt
+        },
+        ...current
+      ].slice(0, 8);
+
+      window.localStorage.setItem("lwn-generated-images:v1", JSON.stringify(next));
+      setImageSaved(true);
+      window.setTimeout(() => setImageSaved(false), 1400);
+    } catch {
+      setImageError("Could not save this image locally. Download still works.");
+    }
+  }
+
+  return (
+    <div className="mt-5 rounded border border-white/10 bg-ink/38 p-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-goldSoft">
+            Image generation
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Create a branded visual from this output.
+          </p>
+        </div>
+        <ImageIcon className="shrink-0 text-violet" size={19} />
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="grid gap-1 text-xs text-muted">
+          Platform size
+          <select
+            value={platform}
+            onChange={(event) => setPlatform(event.target.value as ImagePlatformId)}
+            className="min-h-10 rounded border border-line bg-ink/70 px-2 text-sm font-semibold text-bone outline-none focus:border-violet/70"
+          >
+            {imagePlatformOptions.map((option) => (
+              <option key={option.id} value={option.id} className="bg-ink text-bone">
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="grid gap-1 text-xs text-muted">
+          Style
+          <select
+            value={style}
+            onChange={(event) => setStyle(event.target.value as ImageStyleId)}
+            className="min-h-10 rounded border border-line bg-ink/70 px-2 text-sm font-semibold text-bone outline-none focus:border-violet/70"
+          >
+            {imageStyleOptions.map((option) => (
+              <option key={option.id} value={option.id} className="bg-ink text-bone">
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <label className="mt-3 grid gap-1 text-xs text-muted">
+        Optional direction
+        <input
+          value={customInstruction}
+          onChange={(event) => setCustomInstruction(event.target.value)}
+          className="min-h-10 rounded border border-line bg-ink/70 px-3 text-sm text-bone outline-none placeholder:text-muted/60 focus:border-violet/70"
+          placeholder="Example: use a stronger quote, no face, more gold."
+        />
+      </label>
+
+      {imageError ? (
+        <div className="mt-3 rounded border border-red-400/40 bg-red-500/10 p-3 text-sm leading-6 text-bone">
+          {imageError}
+        </div>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={generateImage}
+        disabled={isGenerating || imageSourceText.length < 12}
+        className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded border border-gold/60 bg-gold/10 px-4 text-sm font-semibold text-bone transition hover:border-gold disabled:cursor-not-allowed disabled:border-white/10 disabled:bg-white/[0.04] disabled:text-muted"
+      >
+        {isGenerating ? <Loader2 className="animate-spin" size={17} /> : <ImageIcon size={17} />}
+        {isGenerating ? "Generating image" : "Generate Image"}
+      </button>
+
+      {image ? (
+        <div className="mt-4 overflow-hidden rounded border border-white/10 bg-coal">
+          <img
+            src={image.imageDataUrl}
+            alt="Generated LeadWithNadine social graphic"
+            className="w-full bg-ink object-contain"
+          />
+          <div className="grid gap-2 border-t border-white/10 p-3 sm:grid-cols-3">
+            <a
+              href={image.imageDataUrl}
+              download={`leadwithnadine-${image.platform}-${image.createdAt.slice(0, 10)}.png`}
+              className="flex min-h-10 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-bone transition hover:border-gold/60"
+            >
+              <Download size={15} />
+              Download
+            </a>
+            <button
+              type="button"
+              onClick={saveGeneratedImage}
+              className="flex min-h-10 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-bone transition hover:border-gold/60"
+            >
+              {imageSaved ? <Check size={15} /> : <Bookmark size={15} />}
+              {imageSaved ? "Saved" : "Save image"}
+            </button>
+            <button
+              type="button"
+              onClick={copyImagePrompt}
+              className="flex min-h-10 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-bone transition hover:border-violet/60"
+            >
+              {promptCopied ? <Check size={15} /> : <Copy size={15} />}
+              {promptCopied ? "Copied" : "Copy direction"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
