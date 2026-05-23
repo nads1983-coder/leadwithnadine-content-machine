@@ -31,7 +31,7 @@ import {
   Wand2,
   X
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
 import { clsx } from "clsx";
 import {
   ctaModes,
@@ -312,6 +312,10 @@ export function StudioShell() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const outputWorkspaceRef = useRef<HTMLElement | null>(null);
+  const pendingOutputScrollIdRef = useRef<string | null>(null);
+  const outputScrollTimeoutRef = useRef<number | null>(null);
+  const lastUserScrollAtRef = useRef(0);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -320,6 +324,20 @@ export function StudioShell() {
     }, 0);
 
     return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    const markUserScroll = () => {
+      lastUserScrollAtRef.current = Date.now();
+    };
+
+    window.addEventListener("wheel", markUserScroll, { passive: true });
+    window.addEventListener("touchmove", markUserScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", markUserScroll);
+      window.removeEventListener("touchmove", markUserScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -338,6 +356,36 @@ export function StudioShell() {
       sectionMatchesFilter(section, activeFilter)
     );
   }, [activeFilter, result, store.saved]);
+
+  useEffect(() => {
+    if (!hasMounted || pendingOutputScrollIdRef.current !== result.id) {
+      return;
+    }
+
+    if (outputScrollTimeoutRef.current !== null) {
+      window.clearTimeout(outputScrollTimeoutRef.current);
+    }
+
+    outputScrollTimeoutRef.current = window.setTimeout(() => {
+      if (Date.now() - lastUserScrollAtRef.current < 900) {
+        pendingOutputScrollIdRef.current = null;
+        return;
+      }
+
+      outputWorkspaceRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+      pendingOutputScrollIdRef.current = null;
+    }, 80);
+
+    return () => {
+      if (outputScrollTimeoutRef.current !== null) {
+        window.clearTimeout(outputScrollTimeoutRef.current);
+        outputScrollTimeoutRef.current = null;
+      }
+    };
+  }, [hasMounted, result.id, visibleSections.length]);
 
   const canGenerate = source.trim().length > 7 && selectedTypes.length > 0 && !isPending;
 
@@ -381,6 +429,7 @@ export function StudioShell() {
       }
 
       setResult(data);
+      pendingOutputScrollIdRef.current = data.id;
       persistStore(addRecent(readStore(), data));
     } catch (generationError) {
       setError(
@@ -576,6 +625,7 @@ export function StudioShell() {
 
             <OutputPanel
               id="outputs"
+              ref={outputWorkspaceRef}
               result={result}
               activeFilter={activeFilter}
               visibleSections={visibleSections}
@@ -950,7 +1000,7 @@ function ComposerPanel({
   );
 }
 
-function OutputPanel({
+const OutputPanel = forwardRef<HTMLElement, OutputPanelProps>(function OutputPanel({
   id,
   result,
   activeFilter,
@@ -966,25 +1016,10 @@ function OutputPanel({
   onSendToFormatter,
   onRegenerate,
   onSaveCurrent
-}: {
-  id: string;
-  result: GenerationResult;
-  activeFilter: FilterId;
-  visibleSections: GeneratedSection[];
-  error: string;
-  copyError: string;
-  copiedId: string;
-  formatterHandoffId: string;
-  isPending: boolean;
-  isSaved: boolean;
-  onFilterChange: (value: FilterId) => void;
-  onCopySection: (section: GeneratedSection) => void;
-  onSendToFormatter: (section: GeneratedSection) => void;
-  onRegenerate: () => void;
-  onSaveCurrent: () => void;
-}) {
+}, ref) {
   return (
     <section
+      ref={ref}
       id={id}
       className="scroll-mt-20 min-w-0 rounded border border-white/10 bg-coal/86 p-4 backdrop-blur-xl sm:p-5"
     >
@@ -1075,7 +1110,25 @@ function OutputPanel({
       </button>
     </section>
   );
-}
+});
+
+type OutputPanelProps = {
+  id: string;
+  result: GenerationResult;
+  activeFilter: FilterId;
+  visibleSections: GeneratedSection[];
+  error: string;
+  copyError: string;
+  copiedId: string;
+  formatterHandoffId: string;
+  isPending: boolean;
+  isSaved: boolean;
+  onFilterChange: (value: FilterId) => void;
+  onCopySection: (section: GeneratedSection) => void;
+  onSendToFormatter: (section: GeneratedSection) => void;
+  onRegenerate: () => void;
+  onSaveCurrent: () => void;
+};
 
 function LinkedInFormatterPanel({
   id,
