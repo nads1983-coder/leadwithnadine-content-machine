@@ -15,42 +15,78 @@ export const imagePlatformOptions: Array<{
   label: string;
   size: ImageSizeId;
   apiSize: "1024x1024" | "1024x1536" | "1536x1024";
+  canvas: { width: number; height: number };
 }> = [
-  { id: "instagram", label: "Instagram square", size: "square", apiSize: "1024x1024" },
-  { id: "tiktok", label: "TikTok vertical", size: "portrait", apiSize: "1024x1536" },
-  { id: "xTwitter", label: "X/Twitter graphic", size: "landscape", apiSize: "1536x1024" },
-  { id: "facebook", label: "Facebook graphic", size: "square", apiSize: "1024x1024" },
-  { id: "youtube", label: "YouTube community", size: "landscape", apiSize: "1536x1024" }
+  {
+    id: "instagram",
+    label: "Instagram square",
+    size: "square",
+    apiSize: "1024x1024",
+    canvas: { width: 1080, height: 1080 }
+  },
+  {
+    id: "tiktok",
+    label: "TikTok vertical",
+    size: "portrait",
+    apiSize: "1024x1536",
+    canvas: { width: 1080, height: 1350 }
+  },
+  {
+    id: "xTwitter",
+    label: "X/Twitter graphic",
+    size: "landscape",
+    apiSize: "1536x1024",
+    canvas: { width: 1200, height: 675 }
+  },
+  {
+    id: "facebook",
+    label: "Facebook graphic",
+    size: "square",
+    apiSize: "1024x1024",
+    canvas: { width: 1080, height: 1080 }
+  },
+  {
+    id: "youtube",
+    label: "YouTube community",
+    size: "landscape",
+    apiSize: "1536x1024",
+    canvas: { width: 1200, height: 675 }
+  }
 ];
 
 export const imageStyleOptions: Array<{
   id: ImageStyleId;
   label: string;
   prompt: string;
+  layout: "quote" | "editorial" | "creator";
 }> = [
   {
     id: "premium-quote",
-    label: "Premium quote graphic",
+    label: "Authority Quote Card",
     prompt:
-      "premium quote graphic, strong editorial typography, one concise leadership quote, balanced negative space"
+      "premium abstract editorial background, quiet authority, subtle vignette, space for a strong quote",
+    layout: "quote"
   },
   {
     id: "minimal-leadership",
-    label: "Minimal leadership post",
+    label: "Dark Editorial Post",
     prompt:
-      "minimal leadership post, clean hierarchy, restrained text, executive communication studio feel"
+      "minimal dark editorial background, executive studio atmosphere, restrained texture, calm premium feel",
+    layout: "editorial"
   },
   {
     id: "bold-social",
-    label: "Bold social graphic",
+    label: "Clean Creator Post",
     prompt:
-      "bold social media graphic, high contrast headline treatment, confident visual weight, still uncluttered"
+      "clean creator post background, modern premium gradient, subtle geometric depth, high contrast space",
+    layout: "creator"
   },
   {
     id: "carousel-cover",
     label: "Clean carousel cover",
     prompt:
-      "clean carousel cover, strong opening title, premium editorial layout, designed as the first slide"
+      "clean carousel cover background, premium editorial frame, spacious composition, subtle gold accent",
+    layout: "editorial"
   }
 ];
 

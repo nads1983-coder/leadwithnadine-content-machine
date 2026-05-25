@@ -1,4 +1,3 @@
-import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 import { contentTypes, defaultSelectedTypes } from "@/lib/content-config";
 import { buildInput, buildInstructions, requestedTypeSet } from "@/lib/prompts";
@@ -234,6 +233,42 @@ function parseOpenAIJson(text: string, request: GenerateRequest): GenerationResu
   };
 }
 
+function extractResponseText(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return "";
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.output_text === "string") {
+    return record.output_text;
+  }
+
+  const output = Array.isArray(record.output) ? record.output : [];
+  for (const item of output) {
+    if (!item || typeof item !== "object") {
+      continue;
+    }
+
+    const content = (item as Record<string, unknown>).content;
+    if (!Array.isArray(content)) {
+      continue;
+    }
+
+    for (const part of content) {
+      if (!part || typeof part !== "object") {
+        continue;
+      }
+
+      const text = (part as Record<string, unknown>).text;
+      if (typeof text === "string") {
+        return text;
+      }
+    }
+  }
+
+  return "";
+}
+
 export async function POST(nextRequest: NextRequest) {
   let request: GenerateRequest;
 
@@ -256,55 +291,62 @@ export async function POST(nextRequest: NextRequest) {
     );
   }
 
-  const client = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
-  });
-
   try {
-    const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL ?? "gpt-5.2",
-      instructions: buildInstructions(),
-      input: buildInput(request),
-      text: {
-        format: {
-          type: "json_schema",
-          name: "leadwithnadine_generation",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            required: ["title", "summary", "sections"],
-            properties: {
-              title: { type: "string" },
-              summary: { type: "string" },
-              sections: {
-                type: "array",
-                minItems: 1,
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  required: ["id", "type", "title", "platform", "body", "items", "cta"],
-                  properties: {
-                    id: { type: "string" },
-                    type: { type: "string" },
-                    title: { type: "string" },
-                    platform: { type: "string" },
-                    body: { type: "string" },
-                    items: {
-                      type: "array",
-                      items: { type: "string" }
-                    },
-                    cta: { type: "string" }
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL ?? "gpt-5.2",
+        instructions: buildInstructions(),
+        input: buildInput(request),
+        text: {
+          format: {
+            type: "json_schema",
+            name: "leadwithnadine_generation",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              required: ["title", "summary", "sections"],
+              properties: {
+                title: { type: "string" },
+                summary: { type: "string" },
+                sections: {
+                  type: "array",
+                  minItems: 1,
+                  items: {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["id", "type", "title", "platform", "body", "items", "cta"],
+                    properties: {
+                      id: { type: "string" },
+                      type: { type: "string" },
+                      title: { type: "string" },
+                      platform: { type: "string" },
+                      body: { type: "string" },
+                      items: {
+                        type: "array",
+                        items: { type: "string" }
+                      },
+                      cta: { type: "string" }
+                    }
                   }
                 }
               }
             }
           }
         }
-      }
+      })
     });
 
-    return NextResponse.json(parseOpenAIJson(response.output_text, request));
+    if (!response.ok) {
+      throw new Error("OpenAI generation failed.");
+    }
+
+    return NextResponse.json(parseOpenAIJson(extractResponseText(await response.json()), request));
   } catch (error) {
     console.error(error);
     return NextResponse.json(

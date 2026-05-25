@@ -195,10 +195,13 @@ type TextStyle = "bold" | "italic" | "boldItalic" | "underline" | "strikethrough
 
 type GeneratedImage = {
   imageDataUrl: string;
+  imageMimeType: string;
   prompt: string;
   platform: ImagePlatformId;
   style: ImageStyleId;
   size: string;
+  backgroundGenerated: boolean;
+  warnings: string[];
   createdAt: string;
 };
 
@@ -1520,6 +1523,42 @@ function ImageGenerationPanel({
     }
   }
 
+  async function downloadGeneratedImage() {
+    if (!image) {
+      return;
+    }
+
+    try {
+      const img = new window.Image();
+      img.decoding = "async";
+      const loaded = new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Image export failed."));
+      });
+      img.src = image.imageDataUrl;
+      await loaded;
+
+      const [width, height] = image.size.split("x").map((value) => Number(value));
+      const canvas = document.createElement("canvas");
+      canvas.width = width || img.naturalWidth;
+      canvas.height = height || img.naturalHeight;
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Image export failed.");
+      }
+
+      context.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const pngUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = pngUrl;
+      link.download = `getcontentos-${image.platform}-${image.createdAt.slice(0, 10)}.png`;
+      link.click();
+    } catch {
+      setImageError("Could not export PNG. You can still save the preview image.");
+    }
+  }
+
   function saveGeneratedImage() {
     if (!image) {
       return;
@@ -1559,7 +1598,7 @@ function ImageGenerationPanel({
             Image generation
           </p>
           <p className="mt-1 text-xs text-muted">
-            Create a branded visual from this output.
+            Create a branded social graphic. Text is rendered separately for cleaner, publication-ready results.
           </p>
         </div>
         <ImageIcon className="shrink-0 text-violet" size={19} />
@@ -1627,18 +1666,25 @@ function ImageGenerationPanel({
         <div className="mt-4 overflow-hidden rounded border border-white/10 bg-coal">
           <img
             src={image.imageDataUrl}
-            alt="Generated LeadWithNadine social graphic"
+            alt="Generated social graphic"
             className="w-full bg-ink object-contain"
           />
+          {image.warnings.length || !image.backgroundGenerated ? (
+            <div className="border-t border-white/10 bg-gold/10 p-3 text-xs leading-5 text-bone">
+              {image.warnings.length
+                ? image.warnings.join(" ")
+                : "Template fallback used for the background."}
+            </div>
+          ) : null}
           <div className="grid gap-2 border-t border-white/10 p-3 sm:grid-cols-3">
-            <a
-              href={image.imageDataUrl}
-              download={`leadwithnadine-${image.platform}-${image.createdAt.slice(0, 10)}.png`}
+            <button
+              type="button"
+              onClick={downloadGeneratedImage}
               className="flex min-h-10 items-center justify-center gap-2 rounded border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-bone transition hover:border-gold/60"
             >
               <Download size={15} />
               Download
-            </a>
+            </button>
             <button
               type="button"
               onClick={saveGeneratedImage}
